@@ -3,7 +3,7 @@
 </p>
 
 <h1 align="center">Concat</h1>
-<h3 align="center">โปรแกรมตัดต่อวิดีโอที่ฟรี โอเพนซอร์ส และใช้ได้ทุกแพลตฟอร์ม</h3>
+<h3 align="center">ตัวแทน CapCut ที่ฟรี โอเพนซอร์ส และใช้ได้ทุกแพลตฟอร์ม</h3>
 
 <div align="center">
 
@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/github/downloads/jub0t/concat/total?style=flat&logo=github&logoColor=F8F8F8&label=Downloads&labelColor=212123&color=0568FD" alt="Total Downloads" /></a>
   <a href="https://github.com/jub0t/Concat/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/jub0t/Concat/ci.yml?style=flat&logo=githubactions&logoColor=F8F8F8&label=Build&labelColor=000000" alt="Build Status" /></a>
-  <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/badge/Version-0.2.10-0568FD?style=flat&logo=semver&logoColor=F8F8F8&labelColor=212123" alt="Concat Version 0.2.10" /></a>
+  <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/badge/Version-0.2.9-0568FD?style=flat&logo=semver&logoColor=F8F8F8&labelColor=212123" alt="Concat Version 0.2.9" /></a>
   <a href="https://discord.gg/DVuPfpXfqP"><img src="https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?style=flat&logo=discord&logoColor=F8F8F8&labelColor=000000" alt="Join Concat Discord" /></a>
   <a href="../LICENSE"><img src="https://img.shields.io/badge/License-AGPL%20v3-0568FD?style=flat&logo=gnu&logoColor=F8F8F8&labelColor=212123" alt="License: AGPL-3.0-or-later" /></a>
 </p>
@@ -44,7 +44,7 @@
 
 ## เกี่ยวกับ Concat
 
-Concat คือโปรแกรมตัดต่อวิดีโอที่ฟรีและเป็นโอเพนซอร์ส บน macOS, Windows, Linux และ Android ทำได้ครบในสิ่งที่งานตัดต่อส่วนใหญ่ต้องใช้ ทั้งคำบรรยายอัตโนมัติ แปลงข้อความเป็นเสียงพูด ลบพื้นหลัง แอนิเมชันคีย์เฟรม เอฟเฟกต์และไตเติล ตัดต่อหลายแทร็ก และส่งออก 4K โดยไม่มีข้อแม้ใด ๆ ไม่มีลายน้ำ ไม่ต้องมีบัญชี ไม่ต้องสมัครสมาชิก ไม่ต้องอัปโหลด
+Concat คือโปรแกรมตัดต่อวิดีโอที่ฟรีและเป็นโอเพนซอร์ส เป็นทางเลือกแทน CapCut บน macOS, Windows, Linux และ Android ทำได้ครบในสิ่งที่คนเปิด CapCut ขึ้นมาใช้จริง ๆ ทั้งคำบรรยายอัตโนมัติ แปลงข้อความเป็นเสียงพูด ลบพื้นหลัง แอนิเมชันคีย์เฟรม เอฟเฟกต์และไตเติล ตัดต่อหลายแทร็ก และส่งออก 4K โดยไม่มีข้อแม้ใด ๆ ไม่มีลายน้ำ ไม่ต้องมีบัญชี ไม่ต้องสมัครสมาชิก ไม่ต้องอัปโหลด
 
 ทุกอย่างทำงานบนเครื่องของคุณเอง ด้วยเอนจิน Rust แบบเนทีฟพร้อมตัวคอมโพสิตบน GPU ติดตั้ง ลากฟุตเทจเข้ามา แล้วตัดได้เลย โมเดล AI สำหรับคำบรรยาย เสียงพูด และการตัดพื้นหลัง ดาวน์โหลดครั้งเดียวจากหน้าการตั้งค่า แล้วหลังจากนั้นก็ใช้งานแบบออฟไลน์ได้ ฟุตเทจของคุณไม่เคยออกจากดิสก์ของคุณ
 

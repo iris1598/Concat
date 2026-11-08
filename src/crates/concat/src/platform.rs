@@ -399,10 +399,32 @@ fn listen_for_wayland_drops(
 /// Whether the window draws the macOS traffic lights over its own strip.
 pub const MACOS: bool = cfg!(target_os = "macos");
 
+/// Whether the window is a tablet's: the desk's strip and dock on a wide
+/// screen held in a hand. Only Android asks, and its activity answers it
+/// from the device's configuration before [`crate::run`] builds the window
+/// ([`set_tablet`]); until told, and on every other platform, the answer is
+/// no. A tablet keeps the desk's window-drawing rules - no frame, no window
+/// buttons - through [`own_window_buttons`].
+static TABLET: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// Says whether this run wears the tablet shell. Called by the Android
+/// activity, whose JNI bridge reads the device's smallest screen width;
+/// nowhere else.
+pub fn set_tablet(tablet: bool) {
+    TABLET.store(tablet, std::sync::atomic::Ordering::Relaxed);
+}
+
+/// Whether the window is a tablet's; see [`TABLET`].
+pub fn tablet() -> bool {
+    TABLET.load(std::sync::atomic::Ordering::Relaxed)
+}
+
 /// Whether the window is a phone's: one screen, held upright, driven by a
 /// finger. The editor then wears the phone shell (ui/phone/) rather than
-/// the strip and the dock, whatever the screen's size - a tablet is a big
-/// phone here, not a small desk. True on Android and iOS; on a desk,
+/// the strip and the dock. True on iOS, and on Android unless the device
+/// was measured a tablet ([`tablet`]) - a tablet wears the desk's shell,
+/// the wide dock the strip opens, and turns it compact when held upright
+/// the way a squeezed desktop window does. On a desk,
 /// `CONCAT_PHONE=1` in the environment asks for the same shell in a window,
 /// which is how the phone layout is worked on without a phone. That window
 /// keeps the platform's own title bar - the phone shell has no strip to
@@ -410,8 +432,10 @@ pub const MACOS: bool = cfg!(target_os = "macos");
 /// over its screen - so the desk's chrome sits above the phone's screen,
 /// the way a simulator's does, and never on it.
 pub fn phone() -> bool {
-    cfg!(any(target_os = "android", target_os = "ios"))
-        || std::env::var_os("CONCAT_PHONE").is_some_and(|value| !value.is_empty() && value != "0")
+    if std::env::var_os("CONCAT_PHONE").is_some_and(|value| !value.is_empty() && value != "0") {
+        return true;
+    }
+    cfg!(target_os = "ios") || (cfg!(target_os = "android") && !tablet())
 }
 
 /// Chooses and installs the backend, and hands back the device the
@@ -587,7 +611,13 @@ pub fn report_startup_failure(error: &str) {
 /// Whether the strip should draw its own window buttons: everywhere the
 /// platform's decorations were taken off, which is everywhere but macOS,
 /// where the traffic lights stay the window's.
-pub const OWN_WINDOW_BUTTONS: bool = !MACOS;
+/// Whether the strip draws its own window buttons: true wherever the
+/// platform's decorations were taken off, which is every desktop but macOS.
+/// Not on a phone or a tablet, whose screen has no buttons to draw over it
+/// - the activity owns the whole of it.
+pub fn own_window_buttons() -> bool {
+    !MACOS && !cfg!(any(target_os = "android", target_os = "ios"))
+}
 
 /// A shortcut as this platform writes it, from the parts a `@keys` takes:
 /// `["Control", "Shift", "Z"]` reads ⇧⌘Z on a Mac and Ctrl+Shift+Z on

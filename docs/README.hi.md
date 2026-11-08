@@ -3,7 +3,7 @@
 </p>
 
 <h1 align="center">Concat</h1>
-<h3 align="center">मुफ़्त, ओपन-सोर्स और क्रॉस-प्लेटफ़ॉर्म वीडियो एडिटर।</h3>
+<h3 align="center">CapCut का मुफ़्त, ओपन-सोर्स और क्रॉस-प्लेटफ़ॉर्म विकल्प।</h3>
 
 <div align="center">
 
@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/github/downloads/jub0t/concat/total?style=flat&logo=github&logoColor=F8F8F8&label=Downloads&labelColor=212123&color=0568FD" alt="Total Downloads" /></a>
   <a href="https://github.com/jub0t/Concat/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/jub0t/Concat/ci.yml?style=flat&logo=githubactions&logoColor=F8F8F8&label=Build&labelColor=000000" alt="Build Status" /></a>
-  <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/badge/Version-0.2.10-0568FD?style=flat&logo=semver&logoColor=F8F8F8&labelColor=212123" alt="Concat Version 0.2.10" /></a>
+  <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/badge/Version-0.2.9-0568FD?style=flat&logo=semver&logoColor=F8F8F8&labelColor=212123" alt="Concat Version 0.2.9" /></a>
   <a href="https://discord.gg/DVuPfpXfqP"><img src="https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?style=flat&logo=discord&logoColor=F8F8F8&labelColor=000000" alt="Join Concat Discord" /></a>
   <a href="../LICENSE"><img src="https://img.shields.io/badge/License-AGPL%20v3-0568FD?style=flat&logo=gnu&logoColor=F8F8F8&labelColor=212123" alt="License: AGPL-3.0-or-later" /></a>
 </p>
@@ -44,7 +44,7 @@
 
 ## परिचय
 
-Concat macOS, Windows, Linux और Android के लिए एक मुफ़्त, ओपन-सोर्स वीडियो एडिटर है। ज़्यादातर एडिट में जो चाहिए, वह सब इसमें है: ऑटो-कैप्शन, टेक्स्ट-टू-स्पीच, बैकग्राउंड हटाना, कीफ़्रेम एनिमेशन, इफ़ेक्ट और टाइटल, मल्टी-ट्रैक कटिंग, 4K एक्सपोर्ट। और किसी शर्त के बिना: न वॉटरमार्क, न अकाउंट, न सब्सक्रिप्शन, न अपलोड।
+Concat macOS, Windows, Linux और Android के लिए एक मुफ़्त, ओपन-सोर्स वीडियो एडिटर और CapCut का विकल्प है। यह वही सब करता है जिसके लिए लोग असल में CapCut खोलते हैं: ऑटो-कैप्शन, टेक्स्ट-टू-स्पीच, बैकग्राउंड हटाना, कीफ़्रेम एनिमेशन, इफ़ेक्ट और टाइटल, मल्टी-ट्रैक कटिंग, 4K एक्सपोर्ट। और किसी शर्त के बिना: न वॉटरमार्क, न अकाउंट, न सब्सक्रिप्शन, न अपलोड।
 
 सब कुछ GPU कंपोज़िटर वाले नेटिव Rust इंजन पर लोकली चलता है। इंस्टॉल करें, फ़ुटेज डालें, काटें। कैप्शन, आवाज़ और कटआउट के AI मॉडल सेटिंग्स से एक बार डाउनलोड होते हैं और उसके बाद ऑफ़लाइन काम करते हैं। आपकी फ़ुटेज कभी आपकी डिस्क से बाहर नहीं जाती।
 

@@ -47,25 +47,6 @@ impl Studio {
         self.publish_dock(app, models);
     }
 
-    /// The project's saved state and the toast, and nothing else: what a
-    /// save changes. The autosave publishes only this - a whole publish a
-    /// second and a half after every edit was all cost (#622).
-    pub fn publish_status(&self, app: &App) {
-        app.set_project_status(
-            if self.dirty {
-                "unsaved changes"
-            } else {
-                "saved"
-            }
-            .into(),
-        );
-        app.set_toast(ToastData {
-            token: self.toast.token,
-            message: self.toast.message.as_str().into(),
-            failed: self.toast.failed,
-        });
-    }
-
     pub fn publish_dock(&self, _app: &App, models: &Models) {
         let out = self.dock_layout();
         sync(&models.seats, out.seats);
@@ -73,61 +54,6 @@ impl Studio {
         // A timeline put back while something plays brings its meters
         // with it; one taken away stops them at their next tick.
         self.wake_meters();
-    }
-
-    /// [`Studio::publish_dock`] for a change to the arrangement, which is
-    /// remembered once the panels settle.
-    pub fn publish_dock_remembered(&self, app: &App, models: &Models) {
-        self.publish_dock(app, models);
-        self.remember_layout_soon();
-    }
-
-    /// Saves the layout a moment after the last change: a gutter drag or a
-    /// window resize arrives as a stream, and the file is written once.
-    pub fn remember_layout_soon(&self) {
-        if !self.prefs.remembers_layout() || self.meters.phone {
-            return;
-        }
-        self.layout_timer.start(
-            slint::TimerMode::SingleShot,
-            std::time::Duration::from_millis(600),
-            || {
-                crate::host::Shell::with(|shell, app| {
-                    shell.studio.borrow_mut().save_layout(app.window());
-                });
-            },
-        );
-    }
-
-    /// Writes the docks and the window's size into the settings, when they
-    /// changed and Settings > General says to remember them. A phone's
-    /// shell has no dock to keep.
-    pub fn save_layout(&mut self, window: &slint::Window) {
-        self.layout_timer.stop();
-        if !self.prefs.remembers_layout() || self.meters.phone {
-            return;
-        }
-        let (wide, compact) = if self.compact {
-            (&self.dock_aside, &self.dock)
-        } else {
-            (&self.dock, &self.dock_aside)
-        };
-        let mut layout = self.prefs.layout.clone().unwrap_or_default();
-        layout.wide = Some(wide.to_saved());
-        layout.compact = Some(compact.to_saved());
-        let maximized = crate::platform::is_maximized(window);
-        layout.maximized = maximized;
-        // A maximised, full-screen or minimised window's size is not the
-        // one to come back to; the last ordinary size is kept instead.
-        let size = window.size().to_logical(window.scale_factor());
-        if !maximized && !window.is_fullscreen() && size.width >= 320.0 && size.height >= 240.0 {
-            layout.width = Some(size.width);
-            layout.height = Some(size.height);
-        }
-        if self.prefs.layout.as_ref() != Some(&layout) {
-            self.prefs.layout = Some(layout);
-            self.prefs.save(&self.host.dirs);
-        }
     }
 
     /// The window is a phone's: the lanes keep the playhead at their middle
@@ -350,7 +276,7 @@ impl Studio {
         editor.set_selected_transition(self.selected_transition_data());
         let (knobs, choices) = self.transition_knobs();
         sync(&models.transition_knobs, knobs);
-        sync_with(&models.transition_choices, choices, same_transition_choice);
+        sync(&models.transition_choices, choices);
         // The background and Fit and Fill, on their own global: the Details
         // panel, the Video panel and the phone all read it.
         self.publish_backdrop(app);
@@ -369,13 +295,9 @@ impl Studio {
         // The keyframe cluster's state, on its own global: every keyable row
         // in the inspector reads it, and none of them is threaded to.
         let keys = app.global::<Keyframes>();
-        // The Keyframes panel: a row holds a model of its keys, so rows are
-        // compared by what those keys are, and an unchanged row is left be.
-        sync_with(
-            &models.key_editor_rows,
-            self.key_editor_rows(),
-            same_key_row,
-        );
+        // The Keyframes panel: set whole, since a row holds a model of its
+        // keys and cannot be compared for a diff.
+        models.key_editor_rows.set_vec(self.key_editor_rows());
         app.global::<KeyEditor>().set_at(
             self.sole_selection()
                 .and_then(|id| self.clip(&id))
@@ -511,13 +433,12 @@ impl Studio {
                 None => Vec::new(),
             },
         );
-        sync_with(
+        sync(
             &models.visual_choices,
             match self.sole_selection().and_then(|id| self.clip(&id)) {
                 Some(clip) => chain_choices(&clip.video_effects),
                 None => Vec::new(),
             },
-            same_chain_choice,
         );
         sync(&models.applied_audio, sound);
         sync(&models.audio_params, sound_params);

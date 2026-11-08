@@ -20,21 +20,6 @@ const FILE: &str = "settings.json";
 /// https://github.com/jub0t/Concat/issues/320
 pub const UI_SCALES: [u32; 6] = [100, 110, 125, 150, 175, 200];
 
-/// The workspace as the last session left it: each dock, and the window.
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-#[serde(default, rename_all = "camelCase")]
-pub struct SavedLayout {
-    /// The dock a wide window shows.
-    pub wide: Option<crate::dock::SavedDock>,
-    /// The dock a narrow one shows; see `studio::COMPACT_WIDTH`.
-    pub compact: Option<crate::dock::SavedDock>,
-    /// The window's size in logical pixels when it was last not maximised,
-    /// so a maximised window restored comes back to that size.
-    pub width: Option<f32>,
-    pub height: Option<f32>,
-    pub maximized: bool,
-}
-
 /// Remembered preferences.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
@@ -68,9 +53,6 @@ pub struct Preferences {
     /// whisper's code ("id", "de", ...). `None` is whisper's to hear, and
     /// so is a code whisper no longer knows.
     pub caption_language: Option<String>,
-    /// The text preset captions are set in, by id; `None`, "default" and
-    /// an id no longer on the list are the plain look.
-    pub caption_style: Option<String>,
     /// The chosen speech model id.
     pub tts_model: Option<String>,
     /// The chosen voice id.
@@ -88,7 +70,7 @@ pub struct Preferences {
     pub playhead_stops_at_end: bool,
     /// Proxies: a file larger than HD gets a smaller copy written in the
     /// background, and playback at Half and Quarter reads that copy. Off
-    /// by default: a proxy is a full re-encode of every large
+    /// by default, as in CapCut: a proxy is a full re-encode of every large
     /// file, on the CPU of a phone or through a hardware encoder a laptop
     /// may not take (an HDR one opened NVENC first), and the person who
     /// wants one for smoother playback turns it on in Settings.
@@ -157,12 +139,6 @@ pub struct Preferences {
     /// How the voiceover panel was last set up.
     #[serde(default)]
     pub voiceover: VoiceoverPrefs,
-    /// Settings > General's "Remember layout": the next launch opens with
-    /// the panels where this one left them, and the window at its size.
-    /// `None` is on; read it through [`Preferences::remembers_layout`].
-    pub remember_layout: Option<bool>,
-    /// The arrangement that is remembered, while the switch is on.
-    pub layout: Option<SavedLayout>,
     /// Rebound shortcuts, by action id: the chord each was given, or ""
     /// for an action a rebind left with none. Absent is the shipped
     /// chord — the file holds what moved, not the whole table. Written
@@ -312,11 +288,6 @@ impl Preferences {
     /// which closes every lane.
     pub fn magnetic(&self) -> bool {
         self.magnetic || (crate::platform::phone() && !self.magnetic_chosen)
-    }
-
-    /// Whether a launch opens on the last session's layout.
-    pub fn remembers_layout(&self) -> bool {
-        self.remember_layout.unwrap_or(true)
     }
 
     /// Sets the magnetic timeline by the person's choice.

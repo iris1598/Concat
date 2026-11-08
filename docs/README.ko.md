@@ -3,7 +3,7 @@
 </p>
 
 <h1 align="center">Concat</h1>
-<h3 align="center">무료 오픈 소스 크로스 플랫폼 비디오 편집기.</h3>
+<h3 align="center">무료 오픈 소스 크로스 플랫폼 CapCut 대체재.</h3>
 
 <div align="center">
 
@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/github/downloads/jub0t/concat/total?style=flat&logo=github&logoColor=F8F8F8&label=Downloads&labelColor=212123&color=0568FD" alt="Total Downloads" /></a>
   <a href="https://github.com/jub0t/Concat/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/jub0t/Concat/ci.yml?style=flat&logo=githubactions&logoColor=F8F8F8&label=Build&labelColor=000000" alt="Build Status" /></a>
-  <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/badge/Version-0.2.10-0568FD?style=flat&logo=semver&logoColor=F8F8F8&labelColor=212123" alt="Concat Version 0.2.10" /></a>
+  <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/badge/Version-0.2.9-0568FD?style=flat&logo=semver&logoColor=F8F8F8&labelColor=212123" alt="Concat Version 0.2.9" /></a>
   <a href="https://discord.gg/DVuPfpXfqP"><img src="https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?style=flat&logo=discord&logoColor=F8F8F8&labelColor=000000" alt="Join Concat Discord" /></a>
   <a href="../LICENSE"><img src="https://img.shields.io/badge/License-AGPL%20v3-0568FD?style=flat&logo=gnu&logoColor=F8F8F8&labelColor=212123" alt="License: AGPL-3.0-or-later" /></a>
 </p>
@@ -44,7 +44,7 @@
 
 ## 소개
 
-Concat은 macOS, Windows, Linux, Android용 무료 오픈 소스 비디오 편집기입니다. 대부분의 편집에 필요한 것을 모두 다룹니다: 자동 자막, 텍스트 음성 변환, 배경 제거, 키프레임 애니메이션, 효과와 타이틀, 멀티트랙 편집, 4K 내보내기. 단, 함정은 없습니다: 워터마크 없음, 계정 없음, 구독 없음, 업로드 없음.
+Concat은 macOS, Windows, Linux, Android용 무료 오픈 소스 비디오 편집기이자 CapCut의 대안입니다. 사람들이 실제로 CapCut을 여는 이유를 모두 다룹니다: 자동 자막, 텍스트 음성 변환, 배경 제거, 키프레임 애니메이션, 효과와 타이틀, 멀티트랙 편집, 4K 내보내기. 단, 함정은 없습니다: 워터마크 없음, 계정 없음, 구독 없음, 업로드 없음.
 
 모든 것이 GPU 컴포지터를 갖춘 네이티브 Rust 엔진 위에서 로컬로 실행됩니다. 설치하고, 영상을 끌어다 놓고, 자르면 됩니다. 자막, 음성, 배경 제거용 AI 모델은 설정에서 한 번만 내려받으면 그 뒤로는 오프라인으로 동작합니다. 당신의 영상은 디스크 밖으로 나가지 않습니다.
 

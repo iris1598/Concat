@@ -52,7 +52,7 @@ impl Studio {
             "shape" => Some(DropPlan {
                 kind: ClipKind::Shape,
                 label: label.to_owned(),
-                media: model::ShapeStyle::preset(id).map(|_| id.to_owned())?,
+                media: model::ShapeKind::parse(id)?.id().to_owned(),
                 start: 0.0,
                 duration: LAYER_DURATION,
                 row: 0,
@@ -73,7 +73,7 @@ impl Studio {
             // A look dragged from the Filters page: a layer over a span.
             // The package id rides in `media`, there being no file.
             "filter" => Some(DropPlan {
-                kind: super::layer_kind(Some(id)),
+                kind: ClipKind::Filter,
                 label: label.to_owned(),
                 media: id.to_owned(),
                 start: 0.0,
@@ -85,7 +85,7 @@ impl Studio {
             // package id rides in `media` behind `transition:`, which
             // `place` reads.
             "transition" => Some(DropPlan {
-                kind: ClipKind::Transition,
+                kind: ClipKind::Filter,
                 label: label.to_owned(),
                 media: format!("transition:{id}"),
                 start: 0.0,
@@ -189,10 +189,7 @@ impl Studio {
                 &plan.media,
                 &plan.label,
             )
-        } else if matches!(
-            plan.kind,
-            ClipKind::Filter | ClipKind::Effect | ClipKind::Adjustment | ClipKind::SoundLayer
-        ) {
+        } else if matches!(plan.kind, ClipKind::Filter | ClipKind::SoundLayer) {
             self.apply(Command::AddLayerClip {
                 track_id: Some(track_id),
                 start: f64::from(plan.start),
@@ -258,10 +255,7 @@ impl Studio {
                 &plan.media,
                 &plan.label,
             )
-        } else if matches!(
-            plan.kind,
-            ClipKind::Filter | ClipKind::Effect | ClipKind::Adjustment | ClipKind::SoundLayer
-        ) {
+        } else if matches!(plan.kind, ClipKind::Filter | ClipKind::SoundLayer) {
             self.apply(Command::AddLayerClip {
                 track_id: None,
                 start,
@@ -330,11 +324,12 @@ impl Studio {
         shape: &str,
         name: &str,
     ) -> Option<String> {
+        let kind = model::ShapeKind::parse(shape).unwrap_or_default();
         self.apply(Command::AddShapeClip {
             track_id,
             above: true,
             start,
-            style: Some(model::ShapeStyle::preset(shape).unwrap_or_default()),
+            style: Some(model::ShapeStyle::of(kind)),
             duration: Some(duration),
             name: name.to_owned(),
         })

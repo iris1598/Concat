@@ -19,7 +19,6 @@ import {
     SpeedPanel, VideoPanel,
 } from "../inspector/clip-inspector.slint";
 import { TextPanel } from "../inspector/text-panel.slint";
-import { ShapePanel } from "../inspector/shape-panel.slint";
 import { RoundButton, ToolItem, ToolStrip } from "controls.slint";
 import { PhoneSheet } from "sheet.slint";
 import { PhoneCanvas } from "canvas.slint";
@@ -395,8 +394,7 @@ export component PhoneEditor inherits Rectangle {
     property <bool> is-audio: Editor.selected-clip.batch-volume || root.kind == ClipKind.audio;
     property <bool> is-image: root.kind == ClipKind.image;
     property <bool> is-text: root.kind == ClipKind.text;
-    property <bool> is-layer: root.kind == ClipKind.filter || root.kind == ClipKind.effect
-        || root.kind == ClipKind.adjustment || root.kind == ClipKind.transition;
+    property <bool> is-layer: root.kind == ClipKind.filter;
     /// A shape has a placement and nothing else a picture has: no colour
     /// to adjust, no chain, no transition, no frame to freeze.
     property <bool> is-shape: root.kind == ClipKind.shape;
@@ -431,7 +429,6 @@ export component PhoneEditor inherits Rectangle {
         return name == "media" ? I18n.t("common.media")
             : name == "audio" ? I18n.t("common.audio")
             : name == "text" || name == "clip-text" ? I18n.t("common.text")
-            : name == "clip-shape" ? I18n.t("shapePanel.shape")
             : name == "effects" || name == "clip-effects" ? I18n.t("common.effects")
             : name == "filters" ? I18n.t("mediaPane.filters")
             : name == "adjustments" ? I18n.t("mediaPane.adjustments")
@@ -760,7 +757,7 @@ export component PhoneEditor inherits Rectangle {
         // The stack scrolls here rather than in Rust, as it does in the
         // timeline pane and for the same reason: it is a property of
         // looking at the lanes, not of the edit. Measured up from the
-        // foot, where the main lane is: a phone editor's main track is the row
+        // foot, where the main lane is: CapCut's main track is the row
         // always in view, with the overlays stacked above it, and a stack
         // read from its head left the main lane - the video, and every
         // picture added to it - below the card once there were four lanes.
@@ -791,7 +788,6 @@ export component PhoneEditor inherits Rectangle {
                 height: parent.height;
 
                 finger: true;
-                duration-seconds: Editor.duration-seconds;
                 edge-grab: 14px;
                 ruler-height: 24px;
                 track-scroll: stack.at;
@@ -862,7 +858,7 @@ export component PhoneEditor inherits Rectangle {
                 wrap: word-wrap;
             }
 
-            // The way in from the lanes: the plus at the end of the
+            // The way in from the lanes: CapCut's plus at the end of the
             // main track. The bin, and Add lays the picks after the main
             // lane's last clip, wherever the playhead is.
             add-media := Rectangle {
@@ -942,7 +938,7 @@ export component PhoneEditor inherits Rectangle {
                 current: root.sheet == "media";
                 clicked => { root.show-media(false); }
             }
-            // Beside Media: the user's own sounds.
+            // Beside Media, as CapCut keeps it: the user's own sounds.
             ToolItem {
                 glyph: Glyph.music;
                 label: I18n.t("common.audio");
@@ -967,7 +963,7 @@ export component PhoneEditor inherits Rectangle {
                 current: root.sheet == "filters";
                 clicked => { root.show("filters", false); }
             }
-            // Adjust, beside Filters: a layer that grades the
+            // CapCut's Adjust, beside Filters: a layer that grades the
             // whole picture beneath it, and the user's LUTs.
             ToolItem {
                 glyph: Glyph.sun;
@@ -1003,7 +999,7 @@ export component PhoneEditor inherits Rectangle {
                 }
             }
             // What fills a tall frame beside a wide shot, for the whole
-            // timeline: the Canvas, where a phone editor keeps it.
+            // timeline: CapCut's Canvas, where a phone editor keeps it.
             ToolItem {
                 glyph: Glyph.frame;
                 label: I18n.t("phone.canvas");
@@ -1046,13 +1042,6 @@ export component PhoneEditor inherits Rectangle {
                 glyph: Glyph.trash;
                 label: I18n.t("common.delete");
                 clicked => { Editor.delete-selected(); }
-            }
-            // The figure itself: its size, fill, outline and shadow.
-            if root.is-shape: ToolItem {
-                glyph: Glyph.shapes;
-                label: I18n.t("shapePanel.shape");
-                current: root.sheet == "clip-shape";
-                clicked => { root.show("clip-shape", true); }
             }
             if root.is-picture || root.is-shape: ToolItem {
                 glyph: Glyph.fit;
@@ -1113,7 +1102,7 @@ export component PhoneEditor inherits Rectangle {
                 current: root.sheet == "clip-audio-effects";
                 clicked => { root.show("clip-audio-effects", true); }
             }
-            // The Mask, on a sheet of its own.
+            // CapCut's Mask, on a sheet of its own.
             if root.is-picture: ToolItem {
                 glyph: Glyph.mask-circle;
                 label: I18n.t("mask.title");
@@ -1604,7 +1593,7 @@ export component PhoneEditor inherits Rectangle {
         if root.sheet == "clip-enhance": EnhancePanel {
             selected: Editor.selected-clip;
             enhance-set(on) => { Editor.clip-enhance-set(on); }
-            enhance-scale(scale) => { Editor.clip-enhance-scale(scale); }
+            enhance-size(index) => { Editor.clip-enhance-size(index); }
             enhance-strength(strength) => { Editor.clip-enhance-strength(strength); }
             enhance-preview => { Editor.clip-enhance-preview(); }
             enhance-run => { Editor.clip-enhance-run(); }
@@ -1622,13 +1611,6 @@ export component PhoneEditor inherits Rectangle {
             commit => { Editor.clip-commit(); }
             import-font => { Editor.import-font(); }
             set-default => { Editor.text-style-default(); }
-        }
-
-        if root.sheet == "clip-shape": ShapePanel {
-            selected: Editor.selected-clip;
-            set(field, value) => { Editor.clip-set(field, value); }
-            set-colour(which, value) => { Editor.clip-shape-colour(which, value); }
-            commit => { Editor.clip-commit(); }
         }
 
         if root.sheet == "clip-layer": FilterPanel {

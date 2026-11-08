@@ -104,22 +104,6 @@ export component Seat inherits Rectangle {
             importing: Editor.importing;
             filter: Editor.media-filter;
             jump-token: Editor.media-jump-token;
-            captions: Editor.captions-sheet;
-            caption-models: Editor.caption-models;
-            caption-languages: Editor.caption-languages;
-            captions-jump-token: Editor.captions-jump-token;
-            captions-shown(shown) => { Editor.captions-shown(shown); }
-            captions-voice-toggled(on) => { Editor.captions-voice-toggled(on); }
-            captions-source-changed(index) => { Editor.captions-source-changed(index); }
-            captions-text-edited(text) => { Editor.captions-text-edited(text); }
-            captions-model-changed(index) => { Editor.captions-model-changed(index); }
-            captions-language-changed(index) => { Editor.captions-language-changed(index); }
-            captions-placement-changed(index) => { Editor.captions-placement-changed(index); }
-            captions-size-changed(index) => { Editor.captions-size-changed(index); }
-            captions-begin => { Editor.captions-begin(); }
-            captions-cancel => { Editor.captions-cancel(); }
-            captions-import-srt => { Editor.captions-import-srt(); }
-            captions-export-srt => { Editor.captions-export-srt(); }
 
             import-media => { Editor.import-media(); }
             filter-changed(filter) => { Editor.media-filter-changed(filter); }
@@ -297,7 +281,7 @@ export component Seat inherits Rectangle {
             cutout-subject(index) => { Editor.cutout-subject(index); }
             cutout-clear => { Editor.cutout-clear(); }
             clip-enhance-set(on) => { Editor.clip-enhance-set(on); }
-            clip-enhance-scale(scale) => { Editor.clip-enhance-scale(scale); }
+            clip-enhance-size(index) => { Editor.clip-enhance-size(index); }
             clip-enhance-strength(strength) => { Editor.clip-enhance-strength(strength); }
             clip-enhance-preview => { Editor.clip-enhance-preview(); }
             clip-enhance-run => { Editor.clip-enhance-run(); }
@@ -326,7 +310,6 @@ export component Seat inherits Rectangle {
             clip-select-words(anchor, cursor) => { Editor.clip-select-words(anchor, cursor); }
             clip-reset-words => { Editor.clip-reset-words(); }
             clip-set-colour(field, value) => { Editor.clip-set-colour(field, value); }
-            clip-shape-colour(which, value) => { Editor.clip-shape-colour(which, value); }
             clip-commit => { Editor.clip-commit(); }
             font-families: Editor.font-families;
             import-font => { Editor.import-font(); }

@@ -81,13 +81,6 @@ impl Studio {
                     crate::panes::export::ExportMsg::Overwrite,
                 ));
             }
-            Some(Confirm::Restart) => {
-                let project = self
-                    .session
-                    .as_ref()
-                    .map(|session| std::path::PathBuf::from(session.path()));
-                crate::panes::settings::restart(project);
-            }
             Some(Confirm::QuitWithoutSaving { .. }) => {
                 log::warn!("close: quitting without saving, as asked");
                 self.release_project();
@@ -120,7 +113,6 @@ impl Studio {
                     title: t("timeline.deleteTrackTitle").into(),
                     message: message.into(),
                     action: t("common.delete").into(),
-                    ..Default::default()
                 }
             }
             Confirm::ReplaceExport { path } => crate::ui::ConfirmData {
@@ -128,23 +120,12 @@ impl Studio {
                 title: t("export.replaceFileTitle").into(),
                 message: tf("export.replaceFileMessage", &[path]).into(),
                 action: t("export.replace").into(),
-                ..Default::default()
             },
             Confirm::QuitWithoutSaving { error } => crate::ui::ConfirmData {
                 open: true,
                 title: t("close.unsavedTitle").into(),
                 message: tf("close.unsavedMessage", &[error]).into(),
                 action: t("close.quitWithoutSaving").into(),
-                ..Default::default()
-            },
-            Confirm::Restart => crate::ui::ConfirmData {
-                open: true,
-                title: t("settings.restartTitle").into(),
-                message: t("settings.restartMessage").into(),
-                action: t("settings.restartNow").into(),
-                cancel: t("settings.restartLater").into(),
-                calm: true,
-                glyph: crate::ui::Glyph::Reset,
             },
         }
     }
@@ -443,7 +424,6 @@ impl Studio {
         self.request_preview();
         self.ensure_cutouts();
         self.ensure_stabilizers();
-        self.ensure_voices();
         self.ensure_regions();
     }
 
@@ -492,7 +472,7 @@ impl Studio {
             || {
                 crate::host::Shell::with(|shell, app| {
                     shell.studio.borrow_mut().save(false);
-                    shell.studio.borrow().publish_status(&app);
+                    shell.studio.borrow().publish(&app, &shell.models);
                 });
             },
         );
@@ -510,7 +490,7 @@ impl Studio {
         // worker happens to pick it up.
         let ticket = projects::ticket();
         self.dirty = false;
-        crate::host::spawn_in_project_publishing(
+        spawn_in_project(
             move || projects::save_ordered(&path, &document, ticket),
             move |studio, _, _, result| match result {
                 Ok(_) if announce => studio.notify(&t("studio.projectSaved"), false),
@@ -520,7 +500,6 @@ impl Studio {
                     studio.notify(&tf("studio.couldNotSave", &[&error]), true);
                 }
             },
-            |studio, app, _| studio.publish_status(app),
         );
     }
 

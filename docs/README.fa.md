@@ -3,7 +3,7 @@
 </p>
 
 <h1 align="center">Concat</h1>
-<h3 align="center">ویرایشگر ویدیوی رایگان، متن‌باز و چندسکویی.</h3>
+<h3 align="center">جایگزین رایگان، متن‌باز و چندسکویی برای CapCut.</h3>
 
 <div align="center">
 
@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/github/downloads/jub0t/concat/total?style=flat&logo=github&logoColor=F8F8F8&label=Downloads&labelColor=212123&color=0568FD" alt="Total Downloads" /></a>
   <a href="https://github.com/jub0t/Concat/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/jub0t/Concat/ci.yml?style=flat&logo=githubactions&logoColor=F8F8F8&label=Build&labelColor=000000" alt="Build Status" /></a>
-  <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/badge/Version-0.2.10-0568FD?style=flat&logo=semver&logoColor=F8F8F8&labelColor=212123" alt="Concat Version 0.2.10" /></a>
+  <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/badge/Version-0.2.9-0568FD?style=flat&logo=semver&logoColor=F8F8F8&labelColor=212123" alt="Concat Version 0.2.9" /></a>
   <a href="https://discord.gg/DVuPfpXfqP"><img src="https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?style=flat&logo=discord&logoColor=F8F8F8&labelColor=000000" alt="Join Concat Discord" /></a>
   <a href="../LICENSE"><img src="https://img.shields.io/badge/License-AGPL%20v3-0568FD?style=flat&logo=gnu&logoColor=F8F8F8&labelColor=212123" alt="License: AGPL-3.0-or-later" /></a>
 </p>
@@ -44,7 +44,7 @@
 
 ## دربارهٔ Concat
 
-Concat یک ویرایشگر ویدیوی رایگان و متن‌باز برای macOS، Windows، Linux و Android است. هر آنچه بیشتر تدوین‌ها لازم دارند را پوشش می‌دهد: زیرنویس خودکار، تبدیل متن به گفتار، حذف پس‌زمینه، انیمیشن با فریم‌های کلیدی، جلوه‌ها و عنوان‌ها، برش چندتراکی، خروجی 4K. و بدون هیچ دامی: بدون واترمارک، بدون حساب کاربری، بدون اشتراک، بدون بارگذاری.
+Concat یک ویرایشگر ویدیوی رایگان و متن‌باز و جایگزینی برای CapCut روی macOS، Windows، Linux و Android است. همان کارهایی را پوشش می‌دهد که مردم واقعاً برایشان CapCut را باز می‌کنند: زیرنویس خودکار، تبدیل متن به گفتار، حذف پس‌زمینه، انیمیشن با فریم‌های کلیدی، جلوه‌ها و عنوان‌ها، برش چندتراکی، خروجی 4K. و بدون هیچ دامی: بدون واترمارک، بدون حساب کاربری، بدون اشتراک، بدون بارگذاری.
 
 همه‌چیز به‌صورت محلی روی یک موتور بومی Rust با ترکیب‌کنندهٔ GPU اجرا می‌شود. نصب کنید، فیلم‌ها را بیندازید، برش بزنید. مدل‌های هوش مصنوعی برای زیرنویس، صدا و برش پس‌زمینه یک بار از تنظیمات دانلود می‌شوند و بعد از آن آفلاین کار می‌کنند. فیلم‌های شما هرگز از دیسکتان خارج نمی‌شوند.
 

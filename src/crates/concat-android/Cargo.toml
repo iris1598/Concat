@@ -74,11 +74,13 @@ icon = "@mipmap/ic_launcher"
 [package.metadata.android.application.activity]
 config_changes = "orientation|keyboardHidden|keyboard|navigation|screenSize|smallestScreenSize|screenLayout|uiMode|density|fontScale|fontWeightAdjustment|locale|layoutDirection"
 launch_mode = "singleTop"
-# Upright only. The phone shell is drawn for a screen held upright - the
-# monitor over the lanes over the bar - and turned on its side it left no
-# room for any of them (#221, #222, #229). Until there is a shell for a
-# wide screen, the activity stays portrait, tablets included.
-orientation = "portrait"
+# Left to the person holding the device. The activity pins a phone to the
+# portrait its shell is drawn for as it starts (src/lib.rs, `tablet`), and
+# leaves a tablet to every orientation: a tablet wears the desk's wide
+# dock, which turns compact when the device is held upright (#221, #222,
+# #229). The orientation change itself never restarts the activity - the
+# config_changes above has it - so the window just resizes mid-edit.
+orientation = "fullUser"
 
 [lints]
 workspace = true

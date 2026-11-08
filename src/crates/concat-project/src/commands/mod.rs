@@ -16,7 +16,7 @@ use crate::model::{
     AppliedFilter, AudioTrack, Background, Clip, ClipKind, ClipMask, ColorRange, ColorSpace, Crop,
     CustomFont, Cutout, CutoutMode, Enhanced, Framing, KeyEase, KeyProperty, MediaItem, MediaKind,
     MediaOrigin, Project, RunStyle, ShapeStyle, SpeedPoint, Stabilize, Stroke, TextStyle, Timeline,
-    Track, Transition, VideoSettings, VoiceMix,
+    Track, Transition, VideoSettings,
 };
 
 mod audio;
@@ -163,10 +163,6 @@ pub struct ClipPatch {
     )]
     #[cfg_attr(feature = "schema", schemars(with = "Option<TextStyle>"))]
     pub text: Option<Option<TextStyle>>,
-    /// A shape clip's figure and paint, whole: absent leaves it alone. Only
-    /// a shape clip takes it.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub shape: Option<ShapeStyle>,
     /// Which of the media's audio streams the clip plays, by stream index:
     /// absent leaves it alone, null goes back to the file's first, a value
     /// names one. See `Clip::audio_stream`.
@@ -578,17 +574,6 @@ pub enum Command {
         clip_id: String,
         /// The settings, or None to take stabilization off.
         stabilize: Option<Stabilize>,
-    },
-    /// Sets a clip's voice isolation - the voice and the rest at levels of
-    /// their own - or takes it off. Tidied on the way in; see
-    /// [`VoiceMix::tidy`]. A clip with no sound is left as it is. The two
-    /// parts are worked out by the host the first time a clip of the media
-    /// asks for them; until then the clip plays as recorded.
-    SetClipVoice {
-        /// The clip. An unknown id is a no-op.
-        clip_id: String,
-        /// The levels, or None to play the clip as recorded.
-        voice: Option<VoiceMix>,
     },
     /// Paints one stroke onto a clip's cutout. A clip with no cutout gets a
     /// custom one; an automatic cutout becomes custom, since a stroke is a
@@ -1134,7 +1119,13 @@ impl Command {
                 duration,
                 style,
                 ..
-            } => bad([*start]) || bad(*duration) || style.iter().any(|style| bad(style.numbers())),
+            } => {
+                bad([*start])
+                    || bad(*duration)
+                    || style
+                        .iter()
+                        .any(|style| bad([style.size, style.stroke_width]))
+            }
             Command::AddTextClip {
                 start,
                 duration,
@@ -1182,9 +1173,6 @@ impl Command {
             Command::SetClipStabilize { stabilize, .. } => stabilize
                 .as_ref()
                 .is_some_and(|stabilize| bad([stabilize.smoothness, stabilize.max_zoom])),
-            Command::SetClipVoice { voice, .. } => voice
-                .as_ref()
-                .is_some_and(|voice| bad([voice.voice, voice.background])),
             Command::MoveClips { moves } => bad(moves.iter().map(|wanted| wanted.start)),
             Command::TrimClip { delta, .. } => bad([*delta]),
             Command::SplitClips { time, .. } => bad([*time]),
@@ -1222,7 +1210,6 @@ impl Command {
                             mask.feather,
                         ])
                     })
-                    || patch.shape.iter().any(|style| bad(style.numbers()))
                     || patch.filters.as_deref().is_some_and(bad_chain)
                     || patch.video_effects.as_deref().is_some_and(bad_chain)
                     || patch
@@ -1349,7 +1336,6 @@ pub fn apply(
         | Command::SetClipCutout { .. }
         | Command::AddCutoutStroke { .. }
         | Command::SetClipStabilize { .. }
-        | Command::SetClipVoice { .. }
         | Command::SetClipKey { .. }
         | Command::ClearClipKey { .. }
         | Command::ClearClipKeys { .. }

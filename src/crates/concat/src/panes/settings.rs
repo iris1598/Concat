@@ -57,9 +57,6 @@ pub enum SettingsMsg {
     PlayheadStopsChanged(bool),
     /// The proxies switch: whether large files get a smaller copy to play.
     ProxiesChanged(bool),
-    /// The remember-layout switch: whether a launch opens on the last
-    /// session's panels and window size.
-    RememberLayoutChanged(bool),
     /// The GPU switch: on, the window and the compositor draw on the GPU;
     /// off, in software. Read at the next launch.
     GpuChanged(bool),
@@ -380,25 +377,11 @@ impl SettingsPane {
                 // straight away (refresh_art's stamp holds the switch);
                 // off, playback reads the files from the next frame.
             }
-            SettingsMsg::RememberLayoutChanged(on) => {
-                studio.prefs.remember_layout = Some(on);
-                // Off forgets what was kept, so turning it on again starts
-                // from the arrangement on screen then, not a stale one.
-                if on {
-                    studio.prefs.save(&studio.host.dirs);
-                    studio.remember_layout_soon();
-                } else {
-                    studio.prefs.layout = None;
-                    studio.prefs.save(&studio.host.dirs);
-                }
-            }
             SettingsMsg::GpuChanged(on) => {
                 studio.prefs.software_gpu = !on;
                 studio.prefs.software_after_crash = None;
                 studio.prefs.save(&studio.host.dirs);
-                // Read only at launch: offered as a restart now, which
-                // saves and reopens the project, or later.
-                studio.confirm = Some(crate::studio::Confirm::Restart);
+                studio.notify(&t("settings.gpuNextStart"), false);
             }
             SettingsMsg::MagneticChanged(on) => {
                 studio.prefs.set_magnetic(on);
@@ -969,8 +952,6 @@ impl SettingsPane {
                 .unwrap_or(2) as i32,
             playhead_stops: self.playhead_stops,
             proxies: studio.prefs.proxies,
-            remember_layout: studio.prefs.remembers_layout(),
-            layout_switchable: !crate::platform::phone(),
             gpu: !studio.prefs.draws_in_software(),
             gpu_switchable: cfg!(any(windows, target_os = "linux", target_os = "macos")),
             magnetic: studio.prefs.magnetic(),
@@ -1059,21 +1040,9 @@ fn fixed_note(why: Fixed) -> String {
 /// session. Now a failed save starts nothing and quits nothing: the window
 /// stays up with `close_project`'s reason, and the bundle already on disk
 /// can be started by hand.
-/// Saves, quits and starts Concat again on `project`; see
-/// `updates::restart`. A save that fails keeps the window, as any close.
-pub(crate) fn restart(project: Option<std::path::PathBuf>) {
-    log::info!("close: restarting for a setting read at launch");
-    quit_for_switch(move || {
-        if let Err(error) = updates::restart(project.as_deref()) {
-            log::warn!("restart: could not start Concat again: {error}");
-        }
-    });
-}
-
 fn quit_for_switch(after: impl FnOnce() + Send + 'static) {
     on_ui(move |studio, app, models| {
         log::info!("close: quitting for a version switch");
-        studio.save_layout(slint::ComponentHandle::window(app));
         let outcome = close_window(
             || studio.close_project(),
             || {

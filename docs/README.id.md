@@ -3,7 +3,7 @@
 </p>
 
 <h1 align="center">Concat</h1>
-<h3 align="center">Penyunting video yang gratis, sumber terbuka, dan lintas platform.</h3>
+<h3 align="center">Pengganti CapCut yang gratis, sumber terbuka, dan lintas platform.</h3>
 
 <div align="center">
 
@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/github/downloads/jub0t/concat/total?style=flat&logo=github&logoColor=F8F8F8&label=Downloads&labelColor=212123&color=0568FD" alt="Total Downloads" /></a>
   <a href="https://github.com/jub0t/Concat/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/jub0t/Concat/ci.yml?style=flat&logo=githubactions&logoColor=F8F8F8&label=Build&labelColor=000000" alt="Build Status" /></a>
-  <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/badge/Version-0.2.10-0568FD?style=flat&logo=semver&logoColor=F8F8F8&labelColor=212123" alt="Concat Version 0.2.10" /></a>
+  <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/badge/Version-0.2.9-0568FD?style=flat&logo=semver&logoColor=F8F8F8&labelColor=212123" alt="Concat Version 0.2.9" /></a>
   <a href="https://discord.gg/DVuPfpXfqP"><img src="https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?style=flat&logo=discord&logoColor=F8F8F8&labelColor=000000" alt="Join Concat Discord" /></a>
   <a href="../LICENSE"><img src="https://img.shields.io/badge/License-AGPL%20v3-0568FD?style=flat&logo=gnu&logoColor=F8F8F8&labelColor=212123" alt="License: AGPL-3.0-or-later" /></a>
 </p>
@@ -44,7 +44,7 @@
 
 ## Tentang
 
-Concat adalah penyunting video gratis dan sumber terbuka untuk macOS, Windows, Linux, dan Android. Ia mencakup yang dibutuhkan sebagian besar suntingan: teks otomatis, teks ke suara, penghapusan latar, animasi keyframe, efek dan judul, pemotongan multi-trek, ekspor 4K. Tanpa jebakan apa pun: tanpa tanda air, tanpa akun, tanpa langganan, tanpa unggahan.
+Concat adalah penyunting video gratis dan sumber terbuka, alternatif CapCut untuk macOS, Windows, Linux, dan Android. Ia mencakup hal-hal yang sebenarnya dicari orang saat membuka CapCut: teks otomatis, teks ke suara, penghapusan latar, animasi keyframe, efek dan judul, pemotongan multi-trek, ekspor 4K. Tanpa jebakan apa pun: tanpa tanda air, tanpa akun, tanpa langganan, tanpa unggahan.
 
 Semuanya berjalan lokal di mesin Rust native dengan kompositor GPU. Pasang, jatuhkan rekaman, potong. Model AI untuk teks, suara, dan pemotongan latar diunduh sekali dari Pengaturan dan setelah itu bekerja luring. Rekaman Anda tidak pernah meninggalkan disk Anda.
 

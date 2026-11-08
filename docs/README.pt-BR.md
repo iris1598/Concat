@@ -3,7 +3,7 @@
 </p>
 
 <h1 align="center">Concat</h1>
-<h3 align="center">O editor de vídeo gratuito, de código aberto e multiplataforma.</h3>
+<h3 align="center">O substituto do CapCut gratuito, de código aberto e multiplataforma.</h3>
 
 <div align="center">
 
@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/github/downloads/jub0t/concat/total?style=flat&logo=github&logoColor=F8F8F8&label=Downloads&labelColor=212123&color=0568FD" alt="Total Downloads" /></a>
   <a href="https://github.com/jub0t/Concat/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/jub0t/Concat/ci.yml?style=flat&logo=githubactions&logoColor=F8F8F8&label=Build&labelColor=000000" alt="Build Status" /></a>
-  <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/badge/Version-0.2.10-0568FD?style=flat&logo=semver&logoColor=F8F8F8&labelColor=212123" alt="Concat Version 0.2.10" /></a>
+  <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/badge/Version-0.2.9-0568FD?style=flat&logo=semver&logoColor=F8F8F8&labelColor=212123" alt="Concat Version 0.2.9" /></a>
   <a href="https://discord.gg/DVuPfpXfqP"><img src="https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?style=flat&logo=discord&logoColor=F8F8F8&labelColor=000000" alt="Join Concat Discord" /></a>
   <a href="../LICENSE"><img src="https://img.shields.io/badge/License-AGPL%20v3-0568FD?style=flat&logo=gnu&logoColor=F8F8F8&labelColor=212123" alt="License: AGPL-3.0-or-later" /></a>
 </p>
@@ -44,7 +44,7 @@
 
 ## Sobre
 
-O Concat é um editor de vídeo gratuito e de código aberto para macOS, Windows, Linux e Android. Ele cobre o que a maioria das edições precisa: legendas automáticas, texto para fala, remoção de fundo, animação por keyframes, efeitos e títulos, corte multipista, exportação em 4K. Sem nenhuma pegadinha: sem marca d’água, sem conta, sem assinatura, sem upload.
+O Concat é um editor de vídeo gratuito e de código aberto, uma alternativa ao CapCut para macOS, Windows, Linux e Android. Ele cobre aquilo para que as pessoas realmente abrem o CapCut: legendas automáticas, texto para fala, remoção de fundo, animação por keyframes, efeitos e títulos, corte multipista, exportação em 4K. Sem nenhuma pegadinha: sem marca d’água, sem conta, sem assinatura, sem upload.
 
 Tudo roda localmente em um motor nativo em Rust com um compositor na GPU. Instale, solte o material, corte. Os modelos de IA para legendas, vozes e recorte são baixados uma vez nas Configurações e depois funcionam offline. Seu material nunca sai do seu disco.
 

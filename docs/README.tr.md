@@ -3,7 +3,7 @@
 </p>
 
 <h1 align="center">Concat</h1>
-<h3 align="center">Ücretsiz, açık kaynaklı ve çok platformlu video düzenleyici.</h3>
+<h3 align="center">Ücretsiz, açık kaynaklı ve çok platformlu CapCut alternatifi.</h3>
 
 <div align="center">
 
@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/github/downloads/jub0t/concat/total?style=flat&logo=github&logoColor=F8F8F8&label=Downloads&labelColor=212123&color=0568FD" alt="Total Downloads" /></a>
   <a href="https://github.com/jub0t/Concat/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/jub0t/Concat/ci.yml?style=flat&logo=githubactions&logoColor=F8F8F8&label=Build&labelColor=000000" alt="Build Status" /></a>
-  <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/badge/Version-0.2.10-0568FD?style=flat&logo=semver&logoColor=F8F8F8&labelColor=212123" alt="Concat Version 0.2.10" /></a>
+  <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/badge/Version-0.2.9-0568FD?style=flat&logo=semver&logoColor=F8F8F8&labelColor=212123" alt="Concat Version 0.2.9" /></a>
   <a href="https://discord.gg/DVuPfpXfqP"><img src="https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?style=flat&logo=discord&logoColor=F8F8F8&labelColor=000000" alt="Join Concat Discord" /></a>
   <a href="../LICENSE"><img src="https://img.shields.io/badge/License-AGPL%20v3-0568FD?style=flat&logo=gnu&logoColor=F8F8F8&labelColor=212123" alt="License: AGPL-3.0-or-later" /></a>
 </p>
@@ -44,7 +44,7 @@
 
 ## Hakkında
 
-Concat; macOS, Windows, Linux ve Android için ücretsiz, açık kaynaklı bir video düzenleyicidir. Çoğu kurgunun ihtiyaç duyduğu her şeyi karşılar: otomatik altyazı, metinden sese, arka plan kaldırma, anahtar kare animasyonu, efektler ve yazılar, çok parçalı kurgu, 4K dışa aktarma. Hiçbir tuzak olmadan: filigran yok, hesap yok, abonelik yok, yükleme yok.
+Concat; macOS, Windows, Linux ve Android için ücretsiz, açık kaynaklı bir video düzenleyici ve bir CapCut alternatifidir. İnsanların CapCut’ı gerçekten ne için açtıklarını karşılar: otomatik altyazı, metinden sese, arka plan kaldırma, anahtar kare animasyonu, efektler ve yazılar, çok parçalı kurgu, 4K dışa aktarma. Hiçbir tuzak olmadan: filigran yok, hesap yok, abonelik yok, yükleme yok.
 
 Her şey, GPU birleştiricili yerel bir Rust motorunda yerel olarak çalışır. Kurun, görüntüleri bırakın, kesin. Altyazı, ses ve kesme için yapay zekâ modelleri Ayarlar’dan bir kez indirilir ve sonrasında çevrimdışı çalışır. Görüntüleriniz diskinizden asla çıkmaz.
 

@@ -11,7 +11,7 @@ import {
     SectionBody,
     SectionHeader,
 } from "../primitives/panel.slint";
-import { Button, Progress } from "../primitives/modal.slint";
+import { Button } from "../primitives/modal.slint";
 import { SegmentedControl } from "../primitives/segmented-control.slint";
 import { Select } from "../primitives/select.slint";
 import { SpeedGraph, SpeedRamp } from "speed-ramp.slint";
@@ -30,7 +30,6 @@ import {
     Switch,
     SwitchRow,
 } from "controls.slint";
-import { FadeEnds, GainFader, StemRow } from "audio-controls.slint";
 import {
     ColorWheel,
     CurveData,
@@ -1123,64 +1122,18 @@ component StabilizeRow inherits Row {
 }
 
 /// Enhance at work on the clip's media: the model on its way, then the
-/// frames, one by one, into the copy the clip will show. What it is doing
-/// and how far, over a bar that fills as it goes.
-component EnhanceRow inherits VerticalLayout {
+/// frames, one by one, into the copy the clip will show.
+component EnhanceRow inherits Row {
     in property <float> progress;
     in property <bool> fetching;
 
-    padding-left: Theme.pad;
-    padding-right: Theme.pad;
-    padding-top: 4px;
-    padding-bottom: 4px;
-    spacing: 6px;
-
-    HorizontalLayout {
-        Text {
-            horizontal-stretch: 1;
-            text: root.fetching
-                ? I18n.t("clipInspector.enhanceFetchingModel")
-                : I18n.t("clipInspector.enhanceWorking");
-            color: Theme.fg;
-            font-size: Theme.fs;
-            vertical-alignment: center;
-        }
-        Text {
-            text: "\{Math.floor(bar.shown * 100)}%";
-            color: Theme.fg-muted;
-            font-family: Theme.font-technical;
-            font-size: Theme.fs;
-            vertical-alignment: center;
-        }
-    }
-    bar := Progress {
-        value: root.progress;
-        live: true;
-    }
-}
-
-/// One fact of a run's estimate: its name at the left, its value at the
-/// right, the row's width between them.
-component StatRow inherits HorizontalLayout {
-    in property <string> label;
-    in property <string> value;
-
-    padding-left: Theme.pad;
-    padding-right: Theme.pad;
-    height: 22px;
-
+    label: I18n.t("common.enhance");
     Text {
-        horizontal-stretch: 1;
-        text: root.label;
+        text: root.fetching
+            ? I18n.t1("clipInspector.fetchingTheModel", "\{Math.round(root.progress * 100)}")
+            : I18n.t1("clipInspector.enhancing", "\{Math.round(root.progress * 100)}");
         color: Theme.fg-muted;
-        font-size: Theme.fs-sm;
-        vertical-alignment: center;
-    }
-    Text {
-        text: root.value;
-        color: Theme.fg;
-        font-family: Theme.font-technical;
-        font-size: Theme.fs-sm;
+        font-size: Theme.fs;
         vertical-alignment: center;
     }
 }
@@ -1285,178 +1238,6 @@ export component BackgroundRows inherits VerticalLayout {
     }
 }
 
-/// Speed: one rate for the whole clip, or a curve - speed that changes over
-/// the clip, shaped on a graph or picked from a preset (see
-/// speed-ramp.slint). Whether the sound's pitch follows is the Audio tab's.
-export component SpeedPanel inherits VerticalLayout {
-    in property <SelectedClipData> selected;
-    /// The panel's first section, with no hairline above it; false where
-    /// it follows another, as it does under Basic.
-    in property <bool> first: true;
-    /// Inside another section - a sound clip's Playback, with its fades and
-    /// pitch - with no header or hairline of its own, always open.
-    in property <bool> bare;
-
-    callback set(field: ClipField, value: float);
-    callback commit();
-
-    property <bool> speed-open: true;
-    property <float> speed;
-    function seed() {
-        root.speed = root.selected.speed;
-        root.fastest = SpeedRamp.fastest;
-        root.slowest = SpeedRamp.slowest;
-    }
-    init => { root.seed(); }
-    changed selected => { root.seed(); }
-
-    // Rust's word on the mode and the preset.
-    property <bool> curved: SpeedRamp.curved;
-    property <int> preset: SpeedRamp.preset;
-    // The two sliders' values, seeded from Rust's like the rate's: a
-    // slider writes its own value as it is dragged, which would end a
-    // binding.
-    property <float> fastest;
-    property <float> slowest;
-    property <float> fastest-truth: SpeedRamp.fastest;
-    property <float> slowest-truth: SpeedRamp.slowest;
-    changed fastest-truth => { root.fastest = root.fastest-truth; }
-    changed slowest-truth => { root.slowest = root.slowest-truth; }
-
-    Section {
-        first: root.first || root.bare;
-        padding-bottom: root.bare ? 0 : 8px;
-        if !root.bare: SectionHeader {
-            title: I18n.t("common.speed");
-            collapsible: true;
-            open <=> root.speed-open;
-            summary: root.curved
-                ? I18n.t("speedRamp.curve")
-                : InspectorFmt.format(ParamFormat.rate, root.speed);
-            HelpButton {
-                text: I18n.t("clipInspector.rateReTimesClip");
-            }
-        }
-
-        if root.bare || root.speed-open: SectionBody {
-            padding-top: root.bare ? 0 : 4px;
-            if root.selected.reverse-progress >= 0: ReverseRow {
-                progress: root.selected.reverse-progress;
-            }
-
-            Row {
-                label: I18n.t("common.speed");
-
-                SegmentedControl {
-                    // A press assigns `current` inside the control, which
-                    // ends a plain binding: so it is set again from Rust's
-                    // word whenever the selection or an undo changes it.
-                    property <bool> truth: root.curved;
-                    changed truth => { self.current = self.truth ? 1 : 0; }
-
-                    options: [I18n.t("speedRamp.constant"), I18n.t("speedRamp.curve")];
-                    icons: [Glyph.speed-constant, Glyph.speed-curve];
-                    current: root.curved ? 1 : 0;
-                    changed(index) => {
-                        SpeedRamp.curve(index == 1);
-                        root.commit();
-                    }
-                }
-            }
-
-            if root.curved: Row {
-                label: I18n.t("speedRamp.shape");
-                Select {
-                    // As the mode's: a pick ends the binding, Rust restores it.
-                    property <int> truth: root.preset;
-                    changed truth => { self.current = self.truth; }
-
-                    options: SpeedRamp.presets;
-                    current: root.preset;
-                    placeholder: I18n.t("speedRamp.custom");
-                    changed(index) => {
-                        SpeedRamp.preset-chosen(index);
-                        root.commit();
-                    }
-                }
-            }
-
-            if root.curved: SpeedGraph {
-                padding-left: Theme.pad;
-                padding-right: Theme.pad;
-                point(index, x, y) => {
-                    SpeedRamp.point(index, x, y);
-                    root.commit();
-                }
-                remove(index) => {
-                    SpeedRamp.remove(index);
-                    root.commit();
-                }
-                changed => { root.commit(); }
-            }
-
-            if root.curved: Row {
-                label: I18n.t("speedRamp.bends");
-                SegmentedControl {
-                    // As the mode's: set again from Rust's word.
-                    property <bool> truth: SpeedRamp.smooth;
-                    changed truth => { self.current = self.truth ? 0 : 1; }
-
-                    options: [I18n.t("speedRamp.smooth"), I18n.t("speedRamp.straight")];
-                    icons: [Glyph.bend-smooth, Glyph.bend-straight];
-                    current: SpeedRamp.smooth ? 0 : 1;
-                    changed(index) => {
-                        SpeedRamp.smoothness(index == 0);
-                        root.commit();
-                    }
-                }
-            }
-
-            // The two extremes, for a ramp that is right in shape and too
-            // much or too little in strength: the fastest stretch brought
-            // down to 4x brings the rest of it along.
-            if root.curved && root.fastest > 0: Param {
-                label: I18n.t("speedRamp.fastest");
-                value <=> root.fastest;
-                minimum: 1.1;
-                maximum: 16;
-                step: 0.05;
-                default-value: 2;
-                fmt: ParamFormat.rate;
-                unit: "x";
-                changed(v) => { SpeedRamp.extreme(true, v); root.commit(); }
-            }
-            if root.curved && root.slowest > 0: Param {
-                label: I18n.t("speedRamp.slowest");
-                value <=> root.slowest;
-                minimum: 0.0625;
-                maximum: 0.9;
-                step: 0.01;
-                default-value: 0.5;
-                fmt: ParamFormat.rate;
-                unit: "x";
-                changed(v) => { SpeedRamp.extreme(false, v); root.commit(); }
-            }
-
-            if !root.curved: Param {
-                label: I18n.t("common.rate");
-                value <=> root.speed;
-                // The engine's full range. The track is linear, so the
-                // useful 0.25-4x band sits left of centre and the number
-                // field beside it is how the extremes are actually dialled
-                // in.
-                minimum: 0.0625;
-                maximum: 16;
-                step: 0.05;
-                default-value: 1;
-                fmt: ParamFormat.rate;
-                unit: "x";
-                changed(v) => { root.set(ClipField.speed, v); root.commit(); }
-            }
-        }
-    }
-}
-
 /// Video: how the picture sits in the frame, how solid it is, and whether
 /// its background is keyed out.
 export component VideoPanel inherits VerticalLayout {
@@ -1480,10 +1261,6 @@ export component VideoPanel inherits VerticalLayout {
     /// Whether the Mask section is here: the phone gives the mask a tool
     /// and a sheet of its own instead.
     in property <bool> mask-section: true;
-    /// Speed at the foot of Transform, a section with it rather than one
-    /// at the bottom of the tab: where a clip sits, how big and how fast
-    /// are what a cut is set up with first. A still has no rate.
-    in property <bool> with-speed;
 
     callback set(field: ClipField, value: float);
     /// A control gesture finished: the accumulated change becomes one command.
@@ -1732,13 +1509,6 @@ export component VideoPanel inherits VerticalLayout {
                     clicked => { Backdrop.frame(true); }
                 }
             }
-
-            if root.with-speed: SpeedPanel {
-                bare: true;
-                selected: root.selected;
-                set(field, value) => { root.set(field, value); }
-                commit => { root.commit(); }
-            }
         }
     }
 
@@ -1834,9 +1604,7 @@ export component VideoPanel inherits VerticalLayout {
             }
         }
 
-        // Open shows the knobs whether it is on or off, as Remove
-        // background does: they can be set before it is turned on.
-        if stabilize.open: SectionBody {
+        if stabilize.open && root.selected.stabilize: SectionBody {
             Param {
                 label: I18n.t("clipInspector.smoothness");
                 value <=> root.smoothness;
@@ -1869,10 +1637,10 @@ export component VideoPanel inherits VerticalLayout {
                 toggled(on) => { root.set(ClipField.stabilize-tripod, on ? 1 : 0); root.commit(); }
             }
 
-            if root.selected.stabilize && root.selected.stabilize-progress >= 0: StabilizeRow {
+            if root.selected.stabilize-progress >= 0: StabilizeRow {
                 progress: root.selected.stabilize-progress;
             }
-            if root.selected.stabilize && root.selected.stabilize-progress < 0 && root.selected.stabilize-zoom > 0: Note {
+            if root.selected.stabilize-progress < 0 && root.selected.stabilize-zoom > 0: Note {
                 text: root.selected.stabilize-needed > root.selected.stabilize-zoom + 0.005
                     ? I18n.t2("clipInspector.stabilizeEased",
                         "\{Math.round(root.selected.stabilize-zoom * 100)}",
@@ -2119,7 +1887,7 @@ export component VideoPanel inherits VerticalLayout {
         }
     }
 
-    // The mask: a shape that keeps part of the picture.
+    // The mask: a shape that keeps part of the picture, CapCut's Mask.
     // The row of shapes picks one - the first, None, takes it off - and
     // the numbers below place, size, turn and soften it, each keyable.
     // Drawn on the picture as it is seen, so it moves with the clip; the
@@ -2363,97 +2131,34 @@ export component VideoPanel inherits VerticalLayout {
     }
 }
 
-/// Enhance's before and after as one picture: the model's answer under a
-/// line that is dragged across it, the plain enlargement left of the line.
-/// One picture rather than two stacked, so the eye compares the same
-/// pixels in place, and the pair costs one height in the inspector, on a
-/// phone as on a desk.
-component Comparison inherits Rectangle {
-    in property <image> before;
-    in property <image> after;
-    in property <string> before-label;
-    in property <string> after-label;
-    /// Where the line is, 0 at the left edge to 1 at the right.
-    in-out property <float> split: 0.5;
+/// One half of Enhance's before and after: a label over the picture,
+/// fitted whole into a fixed height so the pair reads the same on a phone
+/// as in the desktop inspector, and nothing in the layout leans on the
+/// picture's own size.
+component PreviewHalf inherits VerticalLayout {
+    in property <string> label;
+    in property <image> source;
 
-    height: 180px;
-    background: Theme.well;
-    border-radius: Theme.r-sm;
-    clip: true;
+    padding-left: Theme.pad;
+    padding-right: Theme.pad;
+    spacing: 4px;
 
-    // The picture's own box inside the well, fitted whole.
-    property <float> aspect: root.after.width > 0 && root.after.height > 0
-        ? root.after.width / root.after.height : 16 / 9;
-    property <length> pw: Math.min(root.width, root.height * root.aspect);
-    property <length> ph: root.pw / root.aspect;
-    property <length> px: (root.width - root.pw) / 2;
-    property <length> py: (root.height - root.ph) / 2;
-    property <length> line: root.px + root.pw * root.split;
-
-    Image {
-        x: root.px; y: root.py;
-        width: root.pw; height: root.ph;
-        source: root.after;
-        image-fit: fill;
+    Text {
+        text: root.label;
+        color: Theme.fg-muted;
+        font-size: Theme.fs-sm;
     }
     Rectangle {
-        x: root.px; y: root.py;
-        width: Math.max(0px, root.line - root.px); height: root.ph;
+        height: 150px;
+        background: Theme.well;
+        border-radius: Theme.r-sm;
         clip: true;
-        Image {
-            x: 0; y: 0;
-            width: root.pw; height: root.ph;
-            source: root.before;
-            image-fit: fill;
-        }
-    }
-    // The line and its grip.
-    Rectangle {
-        x: root.line - 1px; y: root.py;
-        width: 2px; height: root.ph;
-        background: Theme.fg;
-    }
-    Rectangle {
-        x: root.line - 9px; y: root.py + root.ph / 2 - 9px;
-        width: 18px; height: 18px;
-        border-radius: 9px;
-        background: Theme.fg;
-        HorizontalLayout {
-            alignment: center;
-            Icon { glyph: Glyph.chevron-left; size: 9px; tint: Theme.well; y: (parent.height - self.height) / 2; }
-            Icon { glyph: Glyph.chevron-right; size: 9px; tint: Theme.well; y: (parent.height - self.height) / 2; }
-        }
-    }
-    // Each side says which it is, in its own corner.
-    Rectangle {
-        x: root.px + 6px; y: root.py + 6px;
-        width: before-text.preferred-width + 10px; height: 18px;
-        border-radius: 4px;
-        background: #000000a0;
-        before-text := Text { text: root.before-label; color: #ffffff; font-size: Theme.fs-sm; }
-    }
-    Rectangle {
-        x: root.px + root.pw - self.width - 6px; y: root.py + 6px;
-        width: after-text.preferred-width + 10px; height: 18px;
-        border-radius: 4px;
-        background: #000000a0;
-        after-text := Text { text: root.after-label; color: #ffffff; font-size: Theme.fs-sm; }
-    }
 
-    TouchArea {
-        mouse-cursor: ew-resize;
-        function follow(x: length) {
-            root.split = Math.clamp((x - root.px) / Math.max(1px, root.pw), 0, 1);
-        }
-        pointer-event(event) => {
-            if (event.kind == PointerEventKind.down) {
-                self.follow(self.mouse-x);
-            }
-        }
-        moved => {
-            if (self.pressed) {
-                self.follow(self.mouse-x);
-            }
+        Image {
+            width: parent.width;
+            height: parent.height;
+            source: root.source;
+            image-fit: contain;
         }
     }
 }
@@ -2468,22 +2173,19 @@ component Comparison inherits Rectangle {
 /// Enhance, Enhance again once there is a copy, and Terminate while one is
 /// going.
 ///
-/// Below the tick, what the run is made with. Scale is any size from the
-/// picture's own to as large as 2K allows, in hundredths: Auto picks
-/// twice, or what fits, and moving the slider makes it the person's own;
-/// the line under it says the copy's size in pixels, which is what anyone
-/// is choosing. Strength is the answer to the waxen, "plastic" faces a
-/// full-strength enhancer is known for: it blends the model's answer back
-/// towards the original. The preview runs the frame under the playhead at
-/// those settings and shows before and after as one picture split by a
-/// line, with what a whole run will cost.
+/// Below the tick, what the run is made with - Size and Strength - and a
+/// preview of the frame under the playhead at those settings, so the
+/// person judges the look, and what a whole run will cost, in seconds
+/// rather than after minutes of their machine. Strength is the answer to
+/// the waxen, "plastic" faces a full-strength enhancer is known for: it
+/// blends the model's answer back towards the original.
 export component EnhancePanel inherits VerticalLayout {
     in property <SelectedClipData> selected;
 
     /// The tick: the section on or off, and the copy shown or not.
     callback enhance-set(on: bool);
-    /// Times larger, 1 to 4; zero is Auto.
-    callback enhance-scale(scale: float);
+    /// 0 Auto, 1 once, 2 twice, 3 four times.
+    callback enhance-size(index: int);
     callback enhance-strength(strength: float);
     callback enhance-preview();
     /// The button: a run with the settings as they are, or, while this
@@ -2494,22 +2196,17 @@ export component EnhancePanel inherits VerticalLayout {
     property <bool> running: root.selected.enhance-progress >= 0;
     /// The section is ticked: everything under the header answers.
     property <bool> live: root.selected.enhance-on;
-    /// There is room to enlarge: under 2K on both sides.
-    property <bool> can-grow: root.selected.enhance-max-scale > 1.001;
 
     property <float> strength;
-    property <float> scale;
 
     init => {
         root.strength = root.selected.enhance-strength;
-        root.scale = root.selected.enhance-scale;
     }
-    // Put back on every publish: a drag on the row takes its binding, and
-    // the next clip's file may not take the scale this one showed.
+    // Put back on every publish: a click on the row takes its binding, and
+    // the next clip's file may not take the size this one showed.
     changed selected => {
         root.strength = root.selected.enhance-strength;
-        root.scale = root.selected.enhance-scale;
-        mode.current = root.selected.enhance-auto ? 0 : 1;
+        sizes.current = root.selected.enhance-size;
     }
 
     Section {
@@ -2535,68 +2232,27 @@ export component EnhancePanel inherits VerticalLayout {
                     : I18n.t("clipInspector.enhanceShowingOriginal");
             }
 
-            // Auto or the person's own; the slider under it is the scale
-            // either way, and moving it makes it their own.
+            // A dropdown, as the inspector's other choices of one are:
+            // the sizes past the longest side the model can take are
+            // listed greyed, and the note under the row says why.
             Row {
-                label: I18n.t("clipInspector.enhanceScale");
-                mode := SegmentedControl {
+                label: I18n.t("clipInspector.enhanceSize");
+                sizes := Select {
                     options: [
-                        I18n.t1("clipInspector.enhanceAuto",
-                            "\{Math.round(root.selected.enhance-auto-scale * 100) / 100}x"),
-                        I18n.t("clipInspector.enhanceCustom"),
+                        I18n.t1("clipInspector.enhanceAuto", "\{root.selected.enhance-auto}x"),
+                        "1x",
+                        "2x",
+                        "4x",
                     ];
-                    current: root.selected.enhance-auto ? 0 : 1;
-                    enabled: root.live && root.can-grow;
-                    changed(index) => {
-                        root.enhance-scale(index == 0 ? 0 : root.scale);
-                    }
-                }
-            }
-            if root.can-grow: Param {
-                label: "";
-                value <=> root.scale;
-                minimum: 1;
-                maximum: root.selected.enhance-max-scale;
-                step: 0.05;
-                default-value: root.selected.enhance-auto-scale;
-                fmt: ParamFormat.rate;
-                enabled: root.live;
-                changed(v) => { root.enhance-scale(v); }
-            }
-            // What the choice comes to, in pixels: the file's size and the
-            // copy's, and that 2K is as far as it goes.
-            if root.selected.enhance-output-size != "": Row {
-                label: "";
-                HorizontalLayout {
-                    spacing: 6px;
-                    Text {
-                        text: root.selected.enhance-source-size;
-                        color: Theme.fg-muted;
-                        font-family: Theme.font-technical;
-                        font-size: Theme.fs-sm;
-                        vertical-alignment: center;
-                    }
-                    Text {
-                        text: "→";
-                        color: Theme.fg-dim;
-                        font-size: Theme.fs-sm;
-                        vertical-alignment: center;
-                    }
-                    Text {
-                        text: root.selected.enhance-output-size;
-                        color: root.live ? Theme.fg : Theme.fg-muted;
-                        font-family: Theme.font-technical;
-                        font-size: Theme.fs-sm;
-                        font-weight: Theme.weight-title;
-                        vertical-alignment: center;
-                    }
-                    Rectangle { horizontal-stretch: 1; }
-                    Text {
-                        text: I18n.t("clipInspector.enhanceUpTo2k");
-                        color: Theme.fg-dim;
-                        font-size: Theme.fs-sm;
-                        vertical-alignment: center;
-                    }
+                    disabled: [
+                        false,
+                        false,
+                        !root.selected.enhance-fits-2x,
+                        !root.selected.enhance-fits-4x,
+                    ];
+                    current: root.selected.enhance-size;
+                    enabled: root.live;
+                    changed(index) => { root.enhance-size(index); }
                 }
             }
             if root.selected.enhance-size-note != "": Note {
@@ -2614,28 +2270,15 @@ export component EnhancePanel inherits VerticalLayout {
                 unit: "%";
                 unit-scale: 100;
                 enabled: root.live;
-                help: I18n.t("clipInspector.enhanceStrengthExplain");
                 changed(v) => { root.enhance-strength(v); }
             }
-
-            if root.selected.enhance-preview: Comparison {
-                before: root.selected.enhance-before;
-                after: root.selected.enhance-after;
-                before-label: I18n.t("clipInspector.enhanceBefore");
-                after-label: I18n.t1("clipInspector.enhanceAfter", "\{Math.round(root.strength * 100)}");
-            }
-            if root.selected.enhance-previewing: Note {
-                text: root.selected.enhance-preview-fetch >= 0
-                    ? I18n.t1("clipInspector.fetchingTheModel",
-                        "\{Math.round(root.selected.enhance-preview-fetch * 100)}")
-                    : I18n.t("clipInspector.enhancePreviewing");
+            Note {
+                text: I18n.t("clipInspector.enhanceStrengthExplain");
             }
 
             Row {
                 Button {
-                    label: root.selected.enhance-preview
-                        ? I18n.t("clipInspector.enhancePreviewAgain")
-                        : I18n.t("clipInspector.enhancePreview");
+                    label: I18n.t("clipInspector.enhancePreview");
                     enabled: root.live && !root.selected.enhance-busy;
                     clicked => { root.enhance-preview(); }
                 }
@@ -2653,25 +2296,23 @@ export component EnhancePanel inherits VerticalLayout {
                     clicked => { root.enhance-run(); }
                 }
             }
-            // What a run would take, at the speed the preview measured.
-            if root.selected.enhance-preview: VerticalLayout {
-                padding-top: 4px;
-                StatRow {
-                    label: I18n.t("clipInspector.enhanceEstimatedTime");
-                    value: root.selected.enhance-estimate-total;
-                }
-                if root.selected.enhance-estimate-frames != "": StatRow {
-                    label: I18n.t("clipInspector.enhanceFrames");
-                    value: root.selected.enhance-estimate-frames;
-                }
-                if root.selected.enhance-estimate-per-frame != "": StatRow {
-                    label: I18n.t("clipInspector.enhanceTimePerFrame");
-                    value: root.selected.enhance-estimate-per-frame;
-                }
-                if root.selected.enhance-output-size != "": StatRow {
-                    label: I18n.t("clipInspector.enhanceOutputSize");
-                    value: root.selected.enhance-output-size;
-                }
+            if root.selected.enhance-previewing: Note {
+                text: root.selected.enhance-preview-fetch >= 0
+                    ? I18n.t1("clipInspector.fetchingTheModel",
+                        "\{Math.round(root.selected.enhance-preview-fetch * 100)}")
+                    : I18n.t("clipInspector.enhancePreviewing");
+            }
+
+            if root.selected.enhance-preview: PreviewHalf {
+                label: I18n.t("clipInspector.enhanceBefore");
+                source: root.selected.enhance-before;
+            }
+            if root.selected.enhance-preview: PreviewHalf {
+                label: I18n.t1("clipInspector.enhanceAfter", "\{Math.round(root.strength * 100)}");
+                source: root.selected.enhance-after;
+            }
+            if root.selected.enhance-preview: Note {
+                text: root.selected.enhance-estimate;
             }
         }
     }
@@ -2796,32 +2437,6 @@ export component TransitionPanel inherits VerticalLayout {
     }
 }
 
-/// Voice isolation splitting the clip's file: what it is doing and how far,
-/// over a bar that fills as it goes.
-component VoiceRow inherits VerticalLayout {
-    in property <float> progress;
-    in property <bool> fetching;
-
-    padding-left: Theme.pad;
-    padding-right: Theme.pad;
-    padding-top: 4px;
-    padding-bottom: 4px;
-    spacing: 6px;
-
-    Text {
-        // Each key called as itself, so the string inventory sees both.
-        text: root.fetching
-            ? I18n.t1("voice.downloading", "\{Math.round(root.progress * 100)}")
-            : I18n.t1("voice.isolating", "\{Math.round(root.progress * 100)}");
-        color: Theme.fg-muted;
-        font-size: Theme.fs;
-    }
-    Progress {
-        value: root.progress;
-        live: true;
-    }
-}
-
 /// Audio: the level, the fades, and whether the pitch follows the speed.
 /// The voice and room chain sits under it in the same tab; see config-pane.
 ///
@@ -2839,9 +2454,6 @@ export component AudioPanel inherits VerticalLayout {
     /// A file's colour range used to sit here too and is the media's now,
     /// in the bin card's menu: it is a fact about the file, not the cut.
     property <bool> choosing: !root.selected.batch-volume && root.audio-tracks.length > 1;
-    /// The rate goes in Playback beside the fades: a sound clip's, whose
-    /// rate has no other home. A picture's sound rides its picture's.
-    in property <bool> with-speed;
 
     callback set(field: ClipField, value: float);
     callback commit();
@@ -2852,12 +2464,8 @@ export component AudioPanel inherits VerticalLayout {
     property <float> level;
     property <float> fade-in;
     property <float> fade-out;
-    property <float> voice-level;
-    property <float> background-level;
 
     function seed() {
-        root.voice-level = root.selected.voice-level * 100;
-        root.background-level = root.selected.background-level * 100;
         root.level = InspectorFmt.to-decibels(root.selected.volume);
         root.fade-in = root.selected.fade-in;
         root.fade-out = root.selected.fade-out;
@@ -2890,17 +2498,39 @@ export component AudioPanel inherits VerticalLayout {
         }
     }
 
-    // The level, on a fader with its scale.
     Section {
         first: !root.choosing;
+        volume := SectionHeader {
+            title: I18n.t("clipInspector.volume");
+            collapsible: true;
+            summary: InspectorFmt.format(ParamFormat.gain, root.level);
 
-        SectionBody {
-            padding-top: 8px;
-            GainFader {
-                label: I18n.t("clipInspector.volumeLevel");
+            ResetButton {
+                dirty: root.level != 0 || Keyframes.row(ClipField.volume).keyed;
+                reset => {
+                    Keyframes.clear(ClipField.volume);
+                    root.set(ClipField.volume, 1);
+                    root.commit();
+                }
+            }
+        }
+
+        if volume.open: SectionBody {
+            Param {
+                label: I18n.t("common.level");
                 keyable: !root.selected.batch-volume;
                 field: ClipField.volume;
+                rail: true;
                 value <=> root.level;
+            // The bottom is silence, not -60. +24 at the top because quiet
+            // material genuinely needs it — a distant lavalier is routinely
+            // 15-20 dB under, and a limit that cannot fix that is in the
+            // wrong place.
+            minimum: -60;
+                maximum: 24;
+                step: 0.5;
+                default-value: 0;
+                fmt: ParamFormat.gain;
                 changed(v) => {
                     root.set(ClipField.volume, InspectorFmt.from-decibels(v));
                     root.commit();
@@ -2909,106 +2539,59 @@ export component AudioPanel inherits VerticalLayout {
         }
     }
 
-    // The fades, drawn where they happen: the clip's first and last
-    // seconds of sound with the ramp over each, its corner dragged.
     if !root.selected.batch-volume: Section {
-        SectionBody {
-            padding-top: 10px;
-            FadeEnds {
-                head-wave: root.selected.wave-head;
-                tail-wave: root.selected.wave-tail;
-                window: root.fade-limit;
-                fade-in <=> root.fade-in;
-                fade-out <=> root.fade-out;
-                in-changed(v) => { root.set(ClipField.fade-in, v); root.commit(); }
-                out-changed(v) => { root.set(ClipField.fade-out, v); root.commit(); }
+        fades := SectionHeader {
+            title: I18n.t("clipInspector.fades");
+            collapsible: true;
+            summary: (root.fade-in == 0 && root.fade-out == 0) ? I18n.t("common.none")
+                : InspectorFmt.format(ParamFormat.seconds2, root.fade-in)
+                + " / " + InspectorFmt.format(ParamFormat.seconds2, root.fade-out);
+
+            ResetButton {
+                dirty: root.fade-in != 0 || root.fade-out != 0;
+                reset => {
+                    root.set(ClipField.fade-in, 0);
+                    root.set(ClipField.fade-out, 0);
+                    root.commit();
+                }
+            }
+        }
+
+        if fades.open: SectionBody {
+            Param {
+                label: I18n.t("clipInspector.fadeIn");
+                rail: true;
+                value <=> root.fade-in;
+                minimum: 0;
+                maximum: root.fade-limit;
+                step: 0.05;
+                fmt: ParamFormat.seconds2;
+                unit: "s";
+                changed(v) => { root.set(ClipField.fade-in, v); root.commit(); }
+            }
+
+            Param {
+                label: I18n.t("clipInspector.fadeOut");
+                rail: true;
+                value <=> root.fade-out;
+                minimum: 0;
+                maximum: root.fade-limit;
+                step: 0.05;
+                fmt: ParamFormat.seconds2;
+                unit: "s";
+                changed(v) => { root.set(ClipField.fade-out, v); root.commit(); }
             }
         }
     }
 
-    // Voice isolation (#120): the clip's sound split once, in the
-    // background, into the voice and everything else, and played back as
-    // the two at levels of their own - the music under a talk brought down
-    // rather than off, the hiss taken out from under a voice. Its switch
-    // is its header; on, what the sound is, then the two parts.
+    // Whether the voice keeps its pitch when the rate is not 1. Here and
+    // not on the Speed tab: the rate is the clip's, but what it does to the
+    // sound is the sound's business, beside the level it is mixed at.
     if !root.selected.batch-volume: Section {
-        SectionBody {
-            HorizontalLayout {
-                padding-left: Theme.pad;
-                padding-right: Theme.pad;
-                spacing: 8px;
-                min-height: Theme.h;
-
-                Text {
-                    horizontal-stretch: 1;
-                    text: I18n.t("voice.title");
-                    color: Theme.fg;
-                    font-size: Theme.fs;
-                    font-weight: Theme.weight-title;
-                    vertical-alignment: center;
-                }
-
-                VerticalLayout {
-                    alignment: center;
-                    Switch {
-                        property <bool> truth: root.selected.voice-mode != 0;
-                        changed truth => { self.checked = self.truth; }
-                        checked: self.truth;
-                        toggled(on) => {
-                            root.set(ClipField.voice-mode, on ? 1 : 0);
-                            root.commit();
-                        }
-                    }
-                }
-            }
-
-            // What the clip's sound is, which picks the model that splits
-            // it: speech apart from the noise, the room and any music bed
-            // behind it, or a song's singing apart from its music. Each
-            // names the two parts below in its own words.
-            if root.selected.voice-mode != 0: Row {
-                label: I18n.t("voice.sound");
-                label-width: 108px;
-                SegmentedControl {
-                    // Speech first: what most clips in an edit are, and
-                    // its model ships with the app; the song's downloads.
-                    options: [I18n.t("voice.speech"), I18n.t("voice.song")];
-                    property <int> shown: root.selected.voice-kind == 1 ? 0 : 1;
-                    current: self.shown;
-                    changed shown => { self.current = self.shown; }
-                    changed(index) => {
-                        root.set(ClipField.voice-kind, index == 0 ? 1 : 0);
-                        root.commit();
-                    }
-                }
-            }
-
-            // The two parts, one row each. The voice alone is the other
-            // row's mark pressed; the voice gone is its own.
-            if root.selected.voice-mode != 0: StemRow {
-                name: root.selected.voice-kind == 0 ? I18n.t("voice.vocals") : I18n.t("voice.voiceLevel");
-                glyph: Glyph.mic;
-                value <=> root.voice-level;
-                changed(v) => { root.set(ClipField.voice-level, v / 100); root.commit(); }
-            }
-            if root.selected.voice-mode != 0: StemRow {
-                name: root.selected.voice-kind == 0 ? I18n.t("voice.music") : I18n.t("voice.backgroundLevel");
-                glyph: root.selected.voice-kind == 0 ? Glyph.music : Glyph.waveform;
-                value <=> root.background-level;
-                changed(v) => { root.set(ClipField.background-level, v / 100); root.commit(); }
-            }
-
-            if root.selected.voice-progress >= 0: VoiceRow {
-                progress: root.selected.voice-progress;
-                fetching: root.selected.voice-fetching;
-            }
+        SectionHeader {
+            title: I18n.t("clipInspector.pitch");
         }
-    }
 
-    // The rate and the pitch, together: whether the voice keeps its pitch
-    // is a question about the rate. A sound clip's rate is set here; a
-    // picture's sound rides its picture's, set under Video.
-    if !root.selected.batch-volume: Section {
         SectionBody {
             SwitchRow {
                 label: I18n.t("clipInspector.changePitchWithSpeed");
@@ -3018,12 +2601,168 @@ export component AudioPanel inherits VerticalLayout {
                     root.commit();
                 }
             }
+        }
+    }
+}
 
-            if root.with-speed: SpeedPanel {
-                bare: true;
-                selected: root.selected;
-                set(field, value) => { root.set(field, value); }
-                commit => { root.commit(); }
+/// Speed: one rate for the whole clip, or a curve - speed that changes over
+/// the clip, shaped on a graph or picked from a preset (see
+/// speed-ramp.slint). Whether the sound's pitch follows is the Audio tab's.
+export component SpeedPanel inherits VerticalLayout {
+    in property <SelectedClipData> selected;
+    /// The panel's first section, with no hairline above it; false where
+    /// it follows another, as it does under Basic.
+    in property <bool> first: true;
+
+    callback set(field: ClipField, value: float);
+    callback commit();
+
+    property <float> speed;
+    function seed() {
+        root.speed = root.selected.speed;
+        root.fastest = SpeedRamp.fastest;
+        root.slowest = SpeedRamp.slowest;
+    }
+    init => { root.seed(); }
+    changed selected => { root.seed(); }
+
+    // Rust's word on the mode and the preset.
+    property <bool> curved: SpeedRamp.curved;
+    property <int> preset: SpeedRamp.preset;
+    // The two sliders' values, seeded from Rust's like the rate's: a
+    // slider writes its own value as it is dragged, which would end a
+    // binding.
+    property <float> fastest;
+    property <float> slowest;
+    property <float> fastest-truth: SpeedRamp.fastest;
+    property <float> slowest-truth: SpeedRamp.slowest;
+    changed fastest-truth => { root.fastest = root.fastest-truth; }
+    changed slowest-truth => { root.slowest = root.slowest-truth; }
+
+    Section {
+        first: root.first;
+        speed := SectionHeader {
+            title: I18n.t("common.speed");
+            collapsible: true;
+            summary: root.curved
+                ? I18n.t("speedRamp.curve")
+                : InspectorFmt.format(ParamFormat.rate, root.speed);
+            HelpButton {
+                text: I18n.t("clipInspector.rateReTimesClip");
+            }
+        }
+
+        if speed.open: SectionBody {
+            if root.selected.reverse-progress >= 0: ReverseRow {
+                progress: root.selected.reverse-progress;
+            }
+
+            HorizontalLayout {
+                padding-left: Theme.pad;
+                padding-right: Theme.pad;
+
+                SegmentedControl {
+                    // A press assigns `current` inside the control, which
+                    // ends a plain binding: so it is set again from Rust's
+                    // word whenever the selection or an undo changes it.
+                    property <bool> truth: root.curved;
+                    changed truth => { self.current = self.truth ? 1 : 0; }
+
+                    options: [I18n.t("speedRamp.constant"), I18n.t("speedRamp.curve")];
+                    current: root.curved ? 1 : 0;
+                    changed(index) => {
+                        SpeedRamp.curve(index == 1);
+                        root.commit();
+                    }
+                }
+            }
+
+            if root.curved: Row {
+                label: I18n.t("speedRamp.shape");
+                Select {
+                    // As the mode's: a pick ends the binding, Rust restores it.
+                    property <int> truth: root.preset;
+                    changed truth => { self.current = self.truth; }
+
+                    options: SpeedRamp.presets;
+                    current: root.preset;
+                    placeholder: I18n.t("speedRamp.custom");
+                    changed(index) => {
+                        SpeedRamp.preset-chosen(index);
+                        root.commit();
+                    }
+                }
+            }
+
+            if root.curved: SpeedGraph {
+                padding-left: Theme.pad;
+                padding-right: Theme.pad;
+                point(index, x, y) => {
+                    SpeedRamp.point(index, x, y);
+                    root.commit();
+                }
+                remove(index) => {
+                    SpeedRamp.remove(index);
+                    root.commit();
+                }
+            }
+
+            if root.curved: Row {
+                label: I18n.t("speedRamp.bends");
+                SegmentedControl {
+                    // As the mode's: set again from Rust's word.
+                    property <bool> truth: SpeedRamp.smooth;
+                    changed truth => { self.current = self.truth ? 0 : 1; }
+
+                    options: [I18n.t("speedRamp.smooth"), I18n.t("speedRamp.straight")];
+                    current: SpeedRamp.smooth ? 0 : 1;
+                    changed(index) => {
+                        SpeedRamp.smoothness(index == 0);
+                        root.commit();
+                    }
+                }
+            }
+
+            // The two extremes, for a ramp that is right in shape and too
+            // much or too little in strength: the fastest stretch brought
+            // down to 4x brings the rest of it along.
+            if root.curved && root.fastest > 0: Param {
+                label: I18n.t("speedRamp.fastest");
+                value <=> root.fastest;
+                minimum: 1.1;
+                maximum: 16;
+                step: 0.05;
+                default-value: 2;
+                fmt: ParamFormat.rate;
+                unit: "x";
+                changed(v) => { SpeedRamp.extreme(true, v); root.commit(); }
+            }
+            if root.curved && root.slowest > 0: Param {
+                label: I18n.t("speedRamp.slowest");
+                value <=> root.slowest;
+                minimum: 0.0625;
+                maximum: 0.9;
+                step: 0.01;
+                default-value: 0.5;
+                fmt: ParamFormat.rate;
+                unit: "x";
+                changed(v) => { SpeedRamp.extreme(false, v); root.commit(); }
+            }
+
+            if !root.curved: Param {
+                label: I18n.t("common.rate");
+                value <=> root.speed;
+                // The engine's full range. The track is linear, so the
+                // useful 0.25-4x band sits left of centre and the number
+                // field beside it is how the extremes are actually dialled
+                // in.
+                minimum: 0.0625;
+                maximum: 16;
+                step: 0.05;
+                default-value: 1;
+                fmt: ParamFormat.rate;
+                unit: "x";
+                changed(v) => { root.set(ClipField.speed, v); root.commit(); }
             }
         }
     }

@@ -3,7 +3,7 @@
 </p>
 
 <h1 align="center">Concat</h1>
-<h3 align="center">Trình biên tập video miễn phí, mã nguồn mở và đa nền tảng.</h3>
+<h3 align="center">Lựa chọn thay thế CapCut miễn phí, mã nguồn mở và đa nền tảng.</h3>
 
 <div align="center">
 
@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/github/downloads/jub0t/concat/total?style=flat&logo=github&logoColor=F8F8F8&label=Downloads&labelColor=212123&color=0568FD" alt="Total Downloads" /></a>
   <a href="https://github.com/jub0t/Concat/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/jub0t/Concat/ci.yml?style=flat&logo=githubactions&logoColor=F8F8F8&label=Build&labelColor=000000" alt="Build Status" /></a>
-  <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/badge/Version-0.2.10-0568FD?style=flat&logo=semver&logoColor=F8F8F8&labelColor=212123" alt="Concat Version 0.2.10" /></a>
+  <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/badge/Version-0.2.9-0568FD?style=flat&logo=semver&logoColor=F8F8F8&labelColor=212123" alt="Concat Version 0.2.9" /></a>
   <a href="https://discord.gg/DVuPfpXfqP"><img src="https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?style=flat&logo=discord&logoColor=F8F8F8&labelColor=000000" alt="Join Concat Discord" /></a>
   <a href="../LICENSE"><img src="https://img.shields.io/badge/License-AGPL%20v3-0568FD?style=flat&logo=gnu&logoColor=F8F8F8&labelColor=212123" alt="License: AGPL-3.0-or-later" /></a>
 </p>
@@ -44,7 +44,7 @@
 
 ## Giới thiệu
 
-Concat là trình biên tập video miễn phí, mã nguồn mở cho macOS, Windows, Linux và Android. Nó có những gì phần lớn các bản dựng cần: phụ đề tự động, chuyển văn bản thành giọng nói, xóa nền, hoạt ảnh keyframe, hiệu ứng và tiêu đề, cắt nhiều track, xuất 4K. Không có bất kỳ ràng buộc nào: không watermark, không tài khoản, không đăng ký, không tải lên.
+Concat là trình biên tập video miễn phí, mã nguồn mở và là lựa chọn thay thế CapCut cho macOS, Windows, Linux và Android. Nó làm được những việc mà người ta thực sự mở CapCut để làm: phụ đề tự động, chuyển văn bản thành giọng nói, xóa nền, hoạt ảnh keyframe, hiệu ứng và tiêu đề, cắt nhiều track, xuất 4K. Không có bất kỳ ràng buộc nào: không watermark, không tài khoản, không đăng ký, không tải lên.
 
 Mọi thứ chạy cục bộ trên engine Rust gốc với trình tổng hợp GPU. Cài đặt, kéo thả footage, cắt. Các mô hình AI cho phụ đề, giọng nói và tách nền tải một lần từ Cài đặt và sau đó hoạt động ngoại tuyến. Footage của bạn không bao giờ rời khỏi ổ đĩa của bạn.
 

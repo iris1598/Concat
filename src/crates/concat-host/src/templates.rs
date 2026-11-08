@@ -31,7 +31,6 @@ const ASSETS: &str = "assets";
 const POSTER: &str = "poster.jpg";
 
 /// One template, as the gallery sees it.
-#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct TemplateInfo {
@@ -54,7 +53,6 @@ pub struct TemplateInfo {
 }
 
 /// One placeholder the user's media will replace.
-#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct SlotInfo {

@@ -50,6 +50,11 @@ desktop.ini
 .env
 .env.local
 
+# The APK a local build packaged (src/target/release/apk/Concat.apk, copied
+# here to live beside the source it came from). A release ships through CI;
+# a 70 MB artifact has no place in git history.
+/dist/
+
 # An FFmpeg development build unpacked locally for the linked engine
 # (headers + import libraries), pointed at with FFMPEG_DIR. Large and
 # machine-specific.

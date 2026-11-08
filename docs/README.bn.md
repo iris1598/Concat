@@ -3,7 +3,7 @@
 </p>
 
 <h1 align="center">Concat</h1>
-<h3 align="center">বিনামূল্যের, ওপেন-সোর্স ও ক্রস-প্ল্যাটফর্ম ভিডিও এডিটর।</h3>
+<h3 align="center">বিনামূল্যের, ওপেন-সোর্স ও ক্রস-প্ল্যাটফর্ম CapCut-এর বিকল্প।</h3>
 
 <div align="center">
 
@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/github/downloads/jub0t/concat/total?style=flat&logo=github&logoColor=F8F8F8&label=Downloads&labelColor=212123&color=0568FD" alt="Total Downloads" /></a>
   <a href="https://github.com/jub0t/Concat/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/jub0t/Concat/ci.yml?style=flat&logo=githubactions&logoColor=F8F8F8&label=Build&labelColor=000000" alt="Build Status" /></a>
-  <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/badge/Version-0.2.10-0568FD?style=flat&logo=semver&logoColor=F8F8F8&labelColor=212123" alt="Concat Version 0.2.10" /></a>
+  <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/badge/Version-0.2.9-0568FD?style=flat&logo=semver&logoColor=F8F8F8&labelColor=212123" alt="Concat Version 0.2.9" /></a>
   <a href="https://discord.gg/DVuPfpXfqP"><img src="https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?style=flat&logo=discord&logoColor=F8F8F8&labelColor=000000" alt="Join Concat Discord" /></a>
   <a href="../LICENSE"><img src="https://img.shields.io/badge/License-AGPL%20v3-0568FD?style=flat&logo=gnu&logoColor=F8F8F8&labelColor=212123" alt="License: AGPL-3.0-or-later" /></a>
 </p>
@@ -44,7 +44,7 @@
 
 ## পরিচিতি
 
-Concat হলো macOS, Windows, Linux ও Android-এর জন্য একটি বিনামূল্যের, ওপেন-সোর্স ভিডিও এডিটর। বেশিরভাগ এডিটে যা লাগে, তার সবই এতে আছে: অটো-ক্যাপশন, টেক্সট-টু-স্পিচ, ব্যাকগ্রাউন্ড রিমুভ, কীফ্রেম অ্যানিমেশন, ইফেক্ট ও টাইটেল, মাল্টি-ট্র্যাক কাটিং, 4K এক্সপোর্ট। আর কোনো শর্ত ছাড়াই: না ওয়াটারমার্ক, না অ্যাকাউন্ট, না সাবস্ক্রিপশন, না আপলোড।
+Concat হলো macOS, Windows, Linux ও Android-এর জন্য একটি বিনামূল্যের, ওপেন-সোর্স ভিডিও এডিটর এবং CapCut-এর বিকল্প। মানুষ আসলে যে কাজগুলোর জন্য CapCut খোলে, তার সবই এতে আছে: অটো-ক্যাপশন, টেক্সট-টু-স্পিচ, ব্যাকগ্রাউন্ড রিমুভ, কীফ্রেম অ্যানিমেশন, ইফেক্ট ও টাইটেল, মাল্টি-ট্র্যাক কাটিং, 4K এক্সপোর্ট। আর কোনো শর্ত ছাড়াই: না ওয়াটারমার্ক, না অ্যাকাউন্ট, না সাবস্ক্রিপশন, না আপলোড।
 
 সবকিছু আপনার মেশিনেই চলে, GPU কম্পোজিটরসহ একটি নেটিভ Rust ইঞ্জিনে। ইনস্টল করুন, ফুটেজ টেনে আনুন, কাটুন। ক্যাপশন, ভয়েস আর কাটআউটের AI মডেলগুলো সেটিংস থেকে একবার ডাউনলোড করলেই পরে অফলাইনে কাজ করে। আপনার ফুটেজ কখনো আপনার ডিস্ক ছেড়ে যায় না।
 

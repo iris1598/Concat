@@ -508,6 +508,99 @@ mod links {
     }
 }
 
+/// The shell the window wears, read from the device before the window is
+/// built: the desk's strip and dock on a tablet, the phone's lanes on a
+/// phone. The measure is the configuration's `smallestScreenWidthDp` -
+/// Android's own line between the two, at 600 dp, which a 7" tablet passes
+/// and a large phone does not. A device whose configuration cannot be read
+/// stays a phone, the shell the app has always worn: a wrong "phone" is the
+/// old behaviour, where a wrong "tablet" would be a desk layout on a
+/// screen too small to hold it.
+#[cfg(target_os = "android")]
+mod tablet {
+    use jni::{jni_sig, jni_str};
+    use slint::android::AndroidApp;
+
+    /// Android's smallest-width line between a phone and a tablet, in dp.
+    const TABLET_SMALLEST_WIDTH_DP: i32 = 600;
+
+    /// The portrait the phone shell is drawn for
+    /// (`ActivityInfo.SCREEN_ORIENTATION_PORTRAIT`, stable since API 1).
+    const SCREEN_ORIENTATION_PORTRAIT: i32 = 1;
+
+    /// Measures the screen, tells the window's crate which shell to wear,
+    /// and leaves a phone's activity to the portrait its shell is drawn
+    /// for. A tablet is left to every orientation: the manifest no longer
+    /// pins one, and the desk dock the tablet wears turns into its compact
+    /// two-seat form when the device is held upright, the way a squeezed
+    /// desktop window does.
+    pub fn install(app: &AndroidApp) {
+        let width = smallest_width(app);
+        let tablet = width >= TABLET_SMALLEST_WIDTH_DP;
+        log::info!(
+            "smallest screen width {width} dp: {} shell",
+            if tablet { "tablet" } else { "phone" }
+        );
+        concat::set_tablet(tablet);
+        if !tablet {
+            lock_portrait(app);
+        }
+    }
+
+    /// The device's smallest screen width, in dp, as its configuration
+    /// reports it; 0 when the configuration cannot be reached, which reads
+    /// as a phone.
+    fn smallest_width(app: &AndroidApp) -> i32 {
+        super::java::with_class(app, |env, activity, _class| {
+            let resources = env
+                .call_method(
+                    activity,
+                    jni_str!("getResources"),
+                    jni_sig!("()Landroid/content/res/Resources;"),
+                    &[],
+                )?
+                .l()?;
+            let config = env
+                .call_method(
+                    &resources,
+                    jni_str!("getConfiguration"),
+                    jni_sig!("()Landroid/content/res/Configuration;"),
+                    &[],
+                )?
+                .l()?;
+            // Safety: "I" is the signature of an int, the type beside it.
+            let int = unsafe {
+                jni::signature::FieldSignature::from_raw_parts(
+                    jni_str!("I"),
+                    jni::signature::JavaType::Primitive(jni::signature::Primitive::Int),
+                )
+            };
+            env.get_field(&config, jni_str!("smallestScreenWidthDp"), int)?.i()
+        })
+        .unwrap_or_else(|error| {
+            log::warn!("could not read the screen configuration: {error}");
+            0
+        })
+    }
+
+    /// Asks the activity to hold the phone's portrait. The manifest leaves
+    /// the orientation free, so a phone turned on its side would stretch
+    /// its shell across a screen it was not drawn for (#221, #222, #229);
+    /// this is the pin the manifest used to carry, asked only of a phone.
+    fn lock_portrait(app: &AndroidApp) {
+        super::java::with_class(app, |env, activity, _class| {
+            env.call_method(
+                activity,
+                jni_str!("setRequestedOrientation"),
+                jni_sig!("(I)V"),
+                &[SCREEN_ORIENTATION_PORTRAIT.into()],
+            )?;
+            Ok(())
+        })
+        .unwrap_or_else(|error| log::warn!("could not hold the portrait: {error}"));
+    }
+}
+
 /// Called by the activity's native glue; the name is the contract.
 #[cfg(target_os = "android")]
 #[unsafe(no_mangle)]
@@ -525,6 +618,8 @@ fn android_main(app: slint::android::AndroidApp) {
     publisher::install(&app);
     microphone::install(&app);
     links::install(&app);
+    // Which shell the window wears, before it is built.
+    tablet::install(&app);
     if let Err(error) = concat::run() {
         log::error!("{error}");
     }

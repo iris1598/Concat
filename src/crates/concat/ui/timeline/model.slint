@@ -16,12 +16,7 @@
 /// from the Stickers page, drawn over the picture like a title is. A sound
 /// layer is a filter's sibling for the ear: an audio effect dragged from
 /// the Effects page's sound shelf, treating everything heard under its span.
-///
-/// A picture layer is one of three, by what its chain starts with, and a
-/// transition placed as a clip is a fourth bar of the same build: each wears
-/// its own colour, so a look, an effect, a grade and a transition are told
-/// apart on the lanes without opening one.
-export enum ClipKind { video, audio, image, text, filter, effect, adjustment, transition, shape, sound-layer }
+export enum ClipKind { video, audio, image, text, filter, shape, sound-layer }
 
 /// What a press on a clip means. One tool since the razor went - a cut
 /// is made at the playhead, by B or the tray - and the type stays for the
@@ -187,11 +182,6 @@ export enum ClipField {
     /// stabilization: on (1) or off (0), how smooth, the most it may zoom,
     /// and tripod (1) or following the camera's move (0)
     stabilize, stabilize-smoothness, stabilize-max-zoom, stabilize-tripod,
-    /// voice isolation: off (0), the voice alone (1) or the voice taken
-    /// out (2); and the voice's and the rest's gains, 0 to 2
-    voice-mode, voice-level, background-level,
-    /// and what the voice is set apart from: music (0) or noise (1)
-    voice-kind,
     /// which of the media's audio tracks the clip plays, as a row of
     /// Editor.audio-tracks
     audio-track,
@@ -202,18 +192,6 @@ export enum ClipField {
     /// and the edge's softness 0..1
     mask-shape, mask-invert,
     mask-x, mask-y, mask-width, mask-height, mask-rotation, mask-roundness, mask-feather,
-    /// a shape: its figure as a place in ShapeKind::ALL, its box as
-    /// fractions of frame height, corners 0..1, a polygon's sides and a
-    /// star's points and inner radius; its fill on (1) or off, the blend
-    /// (0 none, 1 straight, 2 round) and its angle; its outline on, its
-    /// thickness, where it sits (0 centre, 1 inside, 2 outside) and its
-    /// pattern (0 solid, 1 dashed, 2 dotted); a line's ends as places in
-    /// LineHead::ALL; how much of it is drawn; and its shadow
-    shape-kind, shape-width, shape-height, shape-radius, shape-sides, shape-points, shape-inner,
-    shape-fill-on, shape-gradient, shape-gradient-angle,
-    shape-stroke-on, shape-stroke-width, shape-stroke-align, shape-dash,
-    shape-start-head, shape-end-head, shape-trim-start, shape-trim-end,
-    shape-shadow-on, shape-shadow-blur, shape-shadow-distance, shape-shadow-angle,
 }
 
 /// One keyable property's state at the playhead, as the inspector needs it.
@@ -367,9 +345,6 @@ export struct SelectedClipData {
     batch: int,
     /// Only the volume control is available for this selection.
     batch-volume: bool,
-    /// The clip makes sound: a sound clip, or a video whose file carries
-    /// an audio stream. A silent video has no Audio tab.
-    has-sound: bool,
     id: string,
     /// the output frame's size, so a fraction can be shown in pixels
     frame-width: int,
@@ -427,12 +402,6 @@ export struct SelectedClipData {
     mask-feather: float,
     fade-in: float,
     fade-out: float,
-    /// The clip's first and last seconds of sound - as far as a fade
-    /// can reach, half the clip and ten seconds at most - as bars in a 1x1
-    /// box, for the Audio tab's fade panes; empty while the peaks are not
-    /// in, and for what has no sound.
-    wave-head: string,
-    wave-tail: string,
 
     // the cutout: 0 none, 1 automatic, 2 custom; what it keeps, 0 auto,
     // 1 person, 2 object; how soft its edge is; how many strokes it
@@ -461,19 +430,6 @@ export struct SelectedClipData {
     stabilize-zoom: float,
     stabilize-needed: float,
 
-    // Voice isolation: off (0), the voice alone (1), the voice taken out
-    // (2), or levels of one's own (3); the voice's and the rest's gains;
-    // and the split of the media's sound, -1 when none is running, else
-    // how far along
-    voice-mode: int,
-    voice-level: float,
-    background-level: float,
-    voice-progress: float,
-    // the split is the vocal model still downloading
-    voice-fetching: bool,
-    // vocals apart from music (0), or speech apart from noise (1)
-    voice-kind: int,
-
     // Enhance writing this clip's enhanced copy: -1 when it is not, else
     // how far along, and whether that is the model downloading rather
     // than frames being restored
@@ -487,46 +443,14 @@ export struct SelectedClipData {
     /// Enhance at work on some clip, a run or a preview: the model is one
     /// model, so the section's buttons wait for it
     enhance-busy: bool,
-    /// The Scale row: the scale a run makes, once to four times, as this
-    /// file takes it; whether it follows Auto, and what Auto comes to; the
-    /// most it may be enlarged, 2K's limit; the file's size and the copy's,
-    /// "1280 × 720" and "2560 × 1440"; and why it cannot move, or empty
-    enhance-scale: float,
-    /// A shape clip's figure and paint, as the Shape section shows them;
-    /// see ClipField's shape fields for what each number means. The box's
-    /// height is the one drawn, its own or the figure's proportion.
-    shape-kind: int,
-    shape-is-line: bool,
-    shape-width: float,
-    shape-height: float,
-    shape-radius: float,
-    shape-sides: int,
-    shape-points: int,
-    shape-inner: float,
-    shape-fill-on: bool,
-    shape-fill: color,
-    shape-gradient: int,
-    shape-gradient-color: color,
-    shape-gradient-angle: float,
-    shape-stroke-on: bool,
-    shape-stroke: color,
-    shape-stroke-width: float,
-    shape-stroke-align: int,
-    shape-dash: int,
-    shape-start-head: int,
-    shape-end-head: int,
-    shape-trim-start: float,
-    shape-trim-end: float,
-    shape-shadow-on: bool,
-    shape-shadow-color: color,
-    shape-shadow-blur: float,
-    shape-shadow-distance: float,
-    shape-shadow-angle: float,
-    enhance-auto: bool,
-    enhance-auto-scale: float,
-    enhance-max-scale: float,
-    enhance-source-size: string,
-    enhance-output-size: string,
+    /// The Size row: 0 Auto, 1 once, 2 twice, 3 four times - what will
+    /// happen, so an ask this file cannot take shows as what it falls to.
+    /// `enhance-auto` is what Auto comes to here; a size that would pass
+    /// the longest-side limit is greyed, `enhance-size-note` saying why
+    enhance-size: int,
+    enhance-auto: int,
+    enhance-fits-2x: bool,
+    enhance-fits-4x: bool,
     enhance-size-note: string,
     /// The Strength row, 0 to 1: how much of the model's answer is kept
     enhance-strength: float,
@@ -536,15 +460,12 @@ export struct SelectedClipData {
     enhance-previewing: bool,
     enhance-preview-fetch: float,
     /// The preview made for this clip at these settings: the middle of
-    /// the frame enlarged plainly and enhanced, and what a run would take
-    /// at the speed it measured - in all, in frames and per frame, the
-    /// last two empty for a still
+    /// the frame enlarged plainly and enhanced, and what a whole run would
+    /// take at the speed it measured
     enhance-preview: bool,
     enhance-before: image,
     enhance-after: image,
-    enhance-estimate-total: string,
-    enhance-estimate-frames: string,
-    enhance-estimate-per-frame: string,
+    enhance-estimate: string,
     /// Reverse writing this clip's backwards copy: -1 when it is not,
     /// else how far along
     reverse-progress: float,

@@ -3,7 +3,7 @@
 </p>
 
 <h1 align="center">Concat</h1>
-<h3 align="center">محرر الفيديو المجاني ومفتوح المصدر، على كل المنصات.</h3>
+<h3 align="center">البديل المجاني ومفتوح المصدر لـ CapCut، على كل المنصات.</h3>
 
 <div align="center">
 
@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/github/downloads/jub0t/concat/total?style=flat&logo=github&logoColor=F8F8F8&label=Downloads&labelColor=212123&color=0568FD" alt="Total Downloads" /></a>
   <a href="https://github.com/jub0t/Concat/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/jub0t/Concat/ci.yml?style=flat&logo=githubactions&logoColor=F8F8F8&label=Build&labelColor=000000" alt="Build Status" /></a>
-  <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/badge/Version-0.2.10-0568FD?style=flat&logo=semver&logoColor=F8F8F8&labelColor=212123" alt="Concat Version 0.2.10" /></a>
+  <a href="https://github.com/jub0t/Concat/releases"><img src="https://img.shields.io/badge/Version-0.2.9-0568FD?style=flat&logo=semver&logoColor=F8F8F8&labelColor=212123" alt="Concat Version 0.2.9" /></a>
   <a href="https://discord.gg/DVuPfpXfqP"><img src="https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?style=flat&logo=discord&logoColor=F8F8F8&labelColor=000000" alt="Join Concat Discord" /></a>
   <a href="../LICENSE"><img src="https://img.shields.io/badge/License-AGPL%20v3-0568FD?style=flat&logo=gnu&logoColor=F8F8F8&labelColor=212123" alt="License: AGPL-3.0-or-later" /></a>
 </p>
@@ -44,7 +44,7 @@
 
 ## نبذة
 
-Concat محرر فيديو مجاني ومفتوح المصدر على macOS وWindows وLinux وAndroid. فيه ما تحتاجه معظم المونتاجات: الترجمة التلقائية، تحويل النص إلى كلام، إزالة الخلفية، التحريك بالإطارات المفتاحية، المؤثرات والعناوين، القص متعدد المسارات، التصدير بدقة 4K. وبلا أي فخاخ: لا علامة مائية، لا حساب، لا اشتراك، لا رفع للملفات.
+Concat محرر فيديو مجاني ومفتوح المصدر وبديل لـ CapCut على macOS وWindows وLinux وAndroid. يغطي ما يفتح الناس CapCut من أجله فعلًا: الترجمة التلقائية، تحويل النص إلى كلام، إزالة الخلفية، التحريك بالإطارات المفتاحية، المؤثرات والعناوين، القص متعدد المسارات، التصدير بدقة 4K. وبلا أي فخاخ: لا علامة مائية، لا حساب، لا اشتراك، لا رفع للملفات.
 
 كل شيء يعمل محليًا على محرك Rust أصلي مع مركّب رسوميات على بطاقة الرسوميات. ثبّته، أسقط لقطاتك، وقصّ. نماذج الذكاء الاصطناعي للترجمة والأصوات والقص تُنزَّل مرة واحدة من الإعدادات ثم تعمل دون اتصال. لقطاتك لا تغادر قرصك أبدًا.
 

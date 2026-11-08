@@ -58,6 +58,11 @@ pub use platform::{
 pub use platform::{LinkOpener, install_link_opener};
 #[cfg(any(target_os = "android", target_os = "ios"))]
 pub use platform::{MicrophoneAccess, install_microphone_access};
+/// What the Android activity tells the window about the device it runs on,
+/// before [`run`] builds it: whether the screen is a tablet's, which wears
+/// the desk's shell rather than the phone's. See `platform::set_tablet`.
+#[cfg(target_os = "android")]
+pub use platform::set_tablet;
 mod panes;
 mod prefs;
 mod presets;
@@ -329,7 +334,6 @@ fn start(project: Option<std::path::PathBuf>, smoke: bool) -> Result<(), slint::
     // offered: a drag in from the system is a desk's (see platform.rs).
     app.set_app_version(env!("CARGO_PKG_VERSION").into());
     app.set_can_drop(cfg!(not(any(target_os = "android", target_os = "ios"))));
-    app.set_capcut(concat_host::capcut::drafts_folder().is_some());
 
     // The user's own packages - imported looks, and any effect folder they
     // or the community wrote - sit beside the built-ins from the first
@@ -351,8 +355,6 @@ fn start(project: Option<std::path::PathBuf>, smoke: bool) -> Result<(), slint::
     studio.watch_packages();
     let dark = studio.prefs.dark.unwrap_or(true);
     app.global::<Theme>().set_dark(dark);
-    // Windows puts a dialog's OK before its Cancel; macOS and Linux after.
-    app.global::<Theme>().set_ok_first(cfg!(windows));
     // The accent is remembered by name and the names live on the Theme
     // global, so the index is looked up there rather than kept in Rust too.
     // A remembered hex is a colour picked by hand, which is the slot past
@@ -408,28 +410,6 @@ fn start(project: Option<std::path::PathBuf>, smoke: bool) -> Result<(), slint::
     // https://github.com/jub0t/Concat/issues/320
     app.global::<Theme>()
         .set_ui_scale(studio.prefs.scale_index() as i32);
-
-    // The window at the size the last session left it, maximised if it
-    // was, while Settings > General remembers the layout. A size too big
-    // for this screen is maximised by `platform::fit_to_screen`.
-    if !phone
-        && let Some(layout) = studio
-            .prefs
-            .layout
-            .as_ref()
-            .filter(|_| studio.prefs.remembers_layout())
-    {
-        if let (Some(width), Some(height)) = (layout.width, layout.height)
-            && width.is_finite()
-            && height.is_finite()
-        {
-            app.window()
-                .set_size(slint::LogicalSize::new(width.max(900.0), height.max(560.0)));
-        }
-        if layout.maximized {
-            app.window().set_maximized(true);
-        }
-    }
 
     let shell = Rc::new(Shell {
         app: app.as_weak(),
@@ -488,7 +468,6 @@ fn start(project: Option<std::path::PathBuf>, smoke: bool) -> Result<(), slint::
             .set_rows(ModelRc::from(models.key_editor_rows.clone()));
         let ramp = app.global::<SpeedRamp>();
         ramp.set_points(ModelRc::from(models.speed_points.clone()));
-        ramp.set_chosen(ModelRc::from(models.speed_chosen.clone()));
         ramp.set_presets(ModelRc::from(models.speed_presets.clone()));
         editor.set_key_marks(ModelRc::from(models.key_marks.clone()));
         app.global::<Library>()
@@ -496,8 +475,6 @@ fn start(project: Option<std::path::PathBuf>, smoke: bool) -> Result<(), slint::
         editor.set_menu_items(ModelRc::from(models.menu.clone()));
         app.set_caption_models(ModelRc::from(models.caption_models.clone()));
         app.set_caption_languages(ModelRc::from(models.caption_languages.clone()));
-        editor.set_caption_models(ModelRc::from(models.caption_models.clone()));
-        editor.set_caption_languages(ModelRc::from(models.caption_languages.clone()));
         app.set_speech_models(ModelRc::from(models.speech_models.clone()));
         app.set_speech_model_details(ModelRc::from(models.speech_model_details.clone()));
         app.set_speech_voices(ModelRc::from(models.speakers.clone()));
@@ -531,8 +508,6 @@ fn start(project: Option<std::path::PathBuf>, smoke: bool) -> Result<(), slint::
         editor.set_font_families(ModelRc::from(models.font_families.clone()));
         app.global::<FontSearch>()
             .set_matches(ModelRc::from(models.font_matches.clone()));
-        app.global::<crate::ui::CaptionStyles>()
-            .set_matches(ModelRc::from(models.caption_styles.clone()));
     }
 
     // Settings > About's block, gathered once: nothing in it changes while
@@ -647,7 +622,6 @@ fn start(project: Option<std::path::PathBuf>, smoke: bool) -> Result<(), slint::
     app.on_titlebar_close(|| {
         log::info!("close: titlebar X pressed");
         Shell::with(|shell, app| {
-            shell.studio.borrow_mut().save_layout(app.window());
             let outcome = close_window(
                 || shell.studio.borrow_mut().close_project(),
                 || {
@@ -674,7 +648,6 @@ fn start(project: Option<std::path::PathBuf>, smoke: bool) -> Result<(), slint::
         log::info!("close: system close request (Alt+F4 / taskbar)");
         let saved = std::cell::Cell::new(true);
         Shell::with(|shell, app| {
-            shell.studio.borrow_mut().save_layout(app.window());
             let outcome = close_window(
                 || shell.studio.borrow_mut().close_project(),
                 || {
@@ -710,7 +683,7 @@ fn start(project: Option<std::path::PathBuf>, smoke: bool) -> Result<(), slint::
             }
         }
     });
-    app.set_own_window_buttons(platform::OWN_WINDOW_BUTTONS);
+    app.set_own_window_buttons(platform::own_window_buttons());
 
     // Mutate, then republish. Every handler is one of these three: the whole
     // window, the lanes alone (for the handlers a pointer drives directly,
@@ -742,9 +715,8 @@ fn start(project: Option<std::path::PathBuf>, smoke: bool) -> Result<(), slint::
     macro_rules! on_lanes {
         ($($handler:tt)*) => { handler!(publish_lanes, $($handler)*) };
     }
-    // A dock change is remembered for the next launch, too.
     macro_rules! on_dock {
-        ($($handler:tt)*) => { handler!(publish_dock_remembered, $($handler)*) };
+        ($($handler:tt)*) => { handler!(publish_dock, $($handler)*) };
     }
 
     let editor = app.global::<Editor>();
@@ -799,9 +771,6 @@ fn start(project: Option<std::path::PathBuf>, smoke: bool) -> Result<(), slint::
     }));
     app.on_start_open(on_window!(|state| {
         state.handle(Msg::Start(StartMsg::Open));
-    }));
-    app.on_start_import_capcut(on_window!(|state| {
-        state.handle(Msg::Start(StartMsg::ImportCapcut));
     }));
     app.on_start_open_recent(on_window!(|state, path: SharedString| {
         state.handle(Msg::Start(StartMsg::OpenRecent(path.to_string())));
@@ -1345,29 +1314,6 @@ fn start(project: Option<std::path::PathBuf>, smoke: bool) -> Result<(), slint::
         ramp.on_remove(on_lanes!(|state, index: i32| {
             state.speed_curve_remove(index);
         }));
-        ramp.on_choose(on_lanes!(|state, index: i32, add: bool| {
-            state.speed_choose(index, add);
-        }));
-        ramp.on_choose_box(on_lanes!(|state,
-                                      x0: f32,
-                                      y0: f32,
-                                      x1: f32,
-                                      y1: f32,
-                                      add: bool| {
-            state.speed_choose_box([x0, y0, x1, y1], add);
-        }));
-        ramp.on_choose_all(on_lanes!(|state, all: bool| {
-            state.speed_choose_all(all);
-        }));
-        ramp.on_grab(on_lanes!(|state| {
-            state.speed_grab();
-        }));
-        ramp.on_drag_chosen(on_lanes!(|state, dx: f32, dy: f32| {
-            state.speed_drag_chosen(dx, dy);
-        }));
-        ramp.on_remove_chosen(on_lanes!(|state| {
-            state.speed_remove_chosen();
-        }));
         ramp.on_preset_chosen(on_lanes!(|state, index: i32| {
             state.speed_curve_preset(index);
         }));
@@ -1451,9 +1397,6 @@ fn start(project: Option<std::path::PathBuf>, smoke: bool) -> Result<(), slint::
     }));
     editor.on_clip_reset_words(on_lanes!(|state| {
         state.reset_words();
-    }));
-    editor.on_clip_shape_colour(on_lanes!(|state, which: i32, value: slint::Color| {
-        state.clip_shape_colour(which, value);
     }));
     editor.on_clip_set_colour(on_lanes!(
         |state, field: ClipTextField, value: slint::Color| {
@@ -1547,15 +1490,6 @@ fn start(project: Option<std::path::PathBuf>, smoke: bool) -> Result<(), slint::
     app.global::<FontSearch>()
         .on_query_changed(on_window!(|state, text: SharedString| {
             state.font_query = text.to_string();
-        }));
-    app.global::<crate::ui::CaptionStyles>()
-        .on_query_changed(on_window!(|state, text: SharedString| {
-            state.captions.style_query = text.to_string();
-        }));
-    app.global::<crate::ui::CaptionStyles>()
-        .on_picked(on_window!(|state, id: SharedString| {
-            state.prefs.caption_style = Some(id.to_string());
-            state.prefs.save(&state.host.dirs);
         }));
     app.global::<Meters>().on_clip_cleared({
         let weak = app.as_weak();
@@ -1730,8 +1664,8 @@ fn start(project: Option<std::path::PathBuf>, smoke: bool) -> Result<(), slint::
     editor.on_clip_enhance_set(on_window!(|state, on: bool| {
         state.clip_enhance_set(on);
     }));
-    editor.on_clip_enhance_scale(on_window!(|state, scale: f32| {
-        state.clip_enhance_scale(scale);
+    editor.on_clip_enhance_size(on_window!(|state, index: i32| {
+        state.clip_enhance_size(index);
     }));
     editor.on_clip_enhance_strength(on_window!(|state, strength: f32| {
         state.clip_enhance_strength(strength);
@@ -2007,12 +1941,6 @@ fn start(project: Option<std::path::PathBuf>, smoke: bool) -> Result<(), slint::
     app.on_relink_all(on_window!(|state| {
         state.handle(Msg::Relink(RelinkMsg::RelinkAll));
     }));
-    app.on_relink_locate(on_window!(|state, id: SharedString| {
-        state.handle(Msg::Relink(RelinkMsg::Locate(id.to_string())));
-    }));
-    app.on_relink_remove(on_window!(|state, id: SharedString| {
-        state.handle(Msg::Relink(RelinkMsg::Remove(id.to_string())));
-    }));
     app.on_relink_dismiss(on_window!(|state| {
         state.handle(Msg::Relink(RelinkMsg::Dismiss));
     }));
@@ -2203,9 +2131,6 @@ fn start(project: Option<std::path::PathBuf>, smoke: bool) -> Result<(), slint::
     app.on_settings_proxies_changed(on_window!(|state, on: bool| {
         state.handle(Msg::Settings(SettingsMsg::ProxiesChanged(on)));
     }));
-    app.on_settings_remember_layout_changed(on_window!(|state, on: bool| {
-        state.handle(Msg::Settings(SettingsMsg::RememberLayoutChanged(on)));
-    }));
     app.on_settings_gpu_changed(on_window!(|state, on: bool| {
         state.handle(Msg::Settings(SettingsMsg::GpuChanged(on)));
     }));
@@ -2365,43 +2290,6 @@ fn start(project: Option<std::path::PathBuf>, smoke: bool) -> Result<(), slint::
     app.on_captions_export_srt(on_window!(|state| {
         state.handle(Msg::Captions(CaptionsMsg::ExportSrt));
     }));
-    // The same answers from the library's Captions page, on a desk.
-    editor.on_captions_shown(on_window!(|state, shown: bool| {
-        state.handle(Msg::Captions(CaptionsMsg::Shown(shown)));
-    }));
-    editor.on_captions_voice_toggled(on_window!(|state, on: bool| {
-        state.handle(Msg::Captions(CaptionsMsg::VoiceToggled(on)));
-    }));
-    editor.on_captions_source_changed(on_window!(|state, index: i32| {
-        state.handle(Msg::Captions(CaptionsMsg::SourceChanged(index)));
-    }));
-    editor.on_captions_text_edited(on_window!(|state, text: SharedString| {
-        state.handle(Msg::Captions(CaptionsMsg::TextEdited(text.to_string())));
-    }));
-    editor.on_captions_model_changed(on_window!(|state, index: i32| {
-        state.handle(Msg::Captions(CaptionsMsg::ModelChanged(index)));
-    }));
-    editor.on_captions_language_changed(on_window!(|state, index: i32| {
-        state.handle(Msg::Captions(CaptionsMsg::LanguageChanged(index)));
-    }));
-    editor.on_captions_placement_changed(on_window!(|state, index: i32| {
-        state.handle(Msg::Captions(CaptionsMsg::PlacementChanged(index)));
-    }));
-    editor.on_captions_size_changed(on_window!(|state, index: i32| {
-        state.handle(Msg::Captions(CaptionsMsg::SizeChanged(index)));
-    }));
-    editor.on_captions_begin(on_window!(|state| {
-        state.handle(Msg::Captions(CaptionsMsg::Begin));
-    }));
-    editor.on_captions_cancel(on_window!(|state| {
-        state.handle(Msg::Captions(CaptionsMsg::Cancel));
-    }));
-    editor.on_captions_import_srt(on_window!(|state| {
-        state.handle(Msg::Captions(CaptionsMsg::ImportSrt));
-    }));
-    editor.on_captions_export_srt(on_window!(|state| {
-        state.handle(Msg::Captions(CaptionsMsg::ExportSrt));
-    }));
     app.on_speech_closed(on_window!(|state| {
         state.handle(Msg::Speech(SpeechMsg::Close));
     }));
@@ -2527,7 +2415,6 @@ fn start(project: Option<std::path::PathBuf>, smoke: bool) -> Result<(), slint::
                 }
                 if action == "close-window" {
                     log::info!("close: File > Close Window");
-                    shell.studio.borrow_mut().save_layout(app.window());
                     let outcome = close_window(
                         || shell.studio.borrow_mut().close_project(),
                         || {
@@ -2656,15 +2543,6 @@ fn start(project: Option<std::path::PathBuf>, smoke: bool) -> Result<(), slint::
                     ClipKind::Image => (theme.get_kind_image(), theme.get_kind_image_well()),
                     ClipKind::Text => (theme.get_kind_text(), theme.get_kind_text_well()),
                     ClipKind::Filter => (theme.get_kind_filter(), theme.get_kind_filter_well()),
-                    ClipKind::Effect => (theme.get_kind_effect(), theme.get_kind_effect_well()),
-                    ClipKind::Adjustment => (
-                        theme.get_kind_adjustment(),
-                        theme.get_kind_adjustment_well(),
-                    ),
-                    ClipKind::Transition => (
-                        theme.get_kind_transition(),
-                        theme.get_kind_transition_well(),
-                    ),
                     ClipKind::Shape => (theme.get_kind_shape(), theme.get_kind_shape_well()),
                     ClipKind::SoundLayer => (
                         theme.get_kind_sound_layer(),
@@ -2858,7 +2736,7 @@ fn typing(app: &App) -> bool {
 
 /// Adds a pane of `kind` beside the largest seat: to its right when that
 /// seat is wide enough to halve across, else below it.
-pub(crate) fn add_pane(state: &mut Studio, kind: PaneKind) {
+fn add_pane(state: &mut Studio, kind: PaneKind) {
     let seats = state.dock_layout().seats;
     let Some(biggest) = seats
         .iter()

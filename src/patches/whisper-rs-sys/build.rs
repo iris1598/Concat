@@ -219,7 +219,11 @@ fn main() {
         config.define("GGML_CPU_ALL_VARIANTS", "OFF");
     }
 
-    if cfg!(target_os = "windows") {
+    // Concat: a Windows host crosses for Android as well, so these are the
+    // target's questions and not the host's: /utf-8 is an MSVC switch that
+    // clang++ aiming at a phone reads as a file name, and advapi32 is a
+    // library the phone has none of.
+    if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows") {
         config.cxxflag("/utf-8");
         println!("cargo:rustc-link-lib=advapi32");
     }

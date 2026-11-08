@@ -63,13 +63,6 @@ impl Studio {
                 })
                 .collect(),
         );
-        let chosen = self.speed_chosen_now();
-        sync(
-            &models.speed_chosen,
-            (0..points.len())
-                .map(|index| chosen.contains(&index))
-                .collect(),
-        );
         ramp.set_curved(curve.is_some());
         ramp.set_smooth(curve.is_none_or(concat_project::speed::is_smooth));
         ramp.set_path(speed_ramp::path(points).into());
@@ -1058,16 +1051,14 @@ impl Studio {
                 .copied()
         });
         let mut enhance = self.enhance_readout(clip);
-        let shape = clip.shape.clone().unwrap_or_default();
         let steady = self.stabilize_readout(clip);
         let enhance_preview = enhance.preview.is_some();
-        let (enhance_before, enhance_after, (estimate_total, estimate_frames, estimate_per_frame)) =
+        let (enhance_before, enhance_after, enhance_estimate) =
             enhance.preview.take().unwrap_or_default();
         SelectedClipData {
             present: true,
             batch: targets.len() as i32,
             batch_volume,
-            has_sound: self.clip_has_sound(clip),
             frame_width: self.output_size().0 as i32,
             frame_height: self.output_size().1 as i32,
             id: clip.id.as_str().into(),
@@ -1130,8 +1121,6 @@ impl Studio {
             mask_roundness: shown(clip, model::KeyProperty::MaskRoundness, at) as f32,
             mask_feather: shown(clip, model::KeyProperty::MaskFeather, at) as f32,
             fade_in: clip.fade_in as f32,
-            wave_head: self.wave_end(clip, false),
-            wave_tail: self.wave_end(clip, true),
             fade_out: clip.fade_out as f32,
             content: text.content.as_str().into(),
             font_family: text.font_family.trim_matches('"').into(),
@@ -1210,20 +1199,6 @@ impl Studio {
                 .unwrap_or(-1.0),
             stabilize_zoom: steady.map_or(-1.0, |(zoom, _)| zoom as f32),
             stabilize_needed: steady.map_or(-1.0, |(_, needed)| needed as f32),
-            voice_mode: match clip.voice {
-                None => 0,
-                Some(mix) if mix.voice == 1.0 && mix.background == 0.0 => 1,
-                Some(mix) if mix.voice == 0.0 && mix.background == 1.0 => 2,
-                Some(_) => 3,
-            },
-            voice_level: clip.voice.map_or(1.0, |mix| mix.voice as f32),
-            background_level: clip.voice.map_or(1.0, |mix| mix.background as f32),
-            voice_progress: self.voice_progress(clip).0,
-            voice_fetching: self.voice_progress(clip).1,
-            voice_kind: match clip.voice.unwrap_or_default().kind {
-                model::VoiceKind::Vocals => 0,
-                model::VoiceKind::Speech => 1,
-            },
             enhance_progress: self
                 .enhance_jobs
                 .get(&clip.id)
@@ -1237,73 +1212,10 @@ impl Studio {
             enhance_linked: clip.enhanced.is_some(),
             enhance_on: self.enhance_ticked(clip),
             enhance_busy: !self.enhance_jobs.is_empty() || self.enhance_previewing.is_some(),
-            enhance_scale: enhance.scale,
-            shape_kind: model::ShapeKind::ALL
-                .iter()
-                .position(|kind| *kind == shape.kind)
-                .unwrap_or(0) as i32,
-            shape_is_line: shape.kind.is_line(),
-            shape_width: shape.width as f32,
-            shape_height: shape.figure_box().1 as f32,
-            shape_radius: shape.corner_radius as f32,
-            shape_sides: shape.sides as i32,
-            shape_points: shape.points as i32,
-            shape_inner: shape.inner_radius as f32,
-            shape_fill_on: !shape.fill.is_empty(),
-            shape_fill: if shape.fill.is_empty() {
-                slint::Color::from_rgb_u8(255, 255, 255)
-            } else {
-                crate::format::colour_of(&shape.fill)
-            },
-            shape_gradient: match &shape.gradient {
-                None => 0,
-                Some(gradient) if gradient.radial => 2,
-                Some(_) => 1,
-            },
-            shape_gradient_color: crate::format::colour_of(
-                &shape.gradient.clone().unwrap_or_default().color,
-            ),
-            shape_gradient_angle: shape.gradient.as_ref().map_or(90.0, |g| g.angle) as f32,
-            shape_stroke_on: !shape.stroke.is_empty() && shape.stroke_width > 0.0,
-            // A line is drawn in its outline's colour, or its fill's.
-            shape_stroke: match (shape.stroke.is_empty(), shape.fill.is_empty()) {
-                (false, _) => crate::format::colour_of(&shape.stroke),
-                (true, false) if shape.kind.is_line() => crate::format::colour_of(&shape.fill),
-                _ => slint::Color::from_rgb_u8(255, 255, 255),
-            },
-            shape_stroke_width: shape.stroke_width as f32,
-            shape_stroke_align: match shape.stroke_align {
-                model::StrokeAlign::Center => 0,
-                model::StrokeAlign::Inside => 1,
-                model::StrokeAlign::Outside => 2,
-            },
-            shape_dash: match shape.dash {
-                model::StrokeDash::Solid => 0,
-                model::StrokeDash::Dashed => 1,
-                model::StrokeDash::Dotted => 2,
-            },
-            shape_start_head: model::LineHead::ALL
-                .iter()
-                .position(|head| *head == shape.start())
-                .unwrap_or(0) as i32,
-            shape_end_head: model::LineHead::ALL
-                .iter()
-                .position(|head| *head == shape.end())
-                .unwrap_or(0) as i32,
-            shape_trim_start: shape.trim_start as f32,
-            shape_trim_end: shape.trim_end as f32,
-            shape_shadow_on: shape.shadow.is_some(),
-            shape_shadow_color: crate::format::colour_of(
-                &shape.shadow.clone().unwrap_or_default().color,
-            ),
-            shape_shadow_blur: shape.shadow.as_ref().map_or(0.02, |s| s.blur) as f32,
-            shape_shadow_distance: shape.shadow.as_ref().map_or(0.012, |s| s.distance) as f32,
-            shape_shadow_angle: shape.shadow.as_ref().map_or(90.0, |s| s.angle) as f32,
-            enhance_auto: self.enhance_scale <= 0.0,
-            enhance_auto_scale: enhance.auto_scale,
-            enhance_max_scale: enhance.max_scale,
-            enhance_source_size: enhance.source.into(),
-            enhance_output_size: enhance.output.into(),
+            enhance_size: enhance.size,
+            enhance_auto: enhance.auto as i32,
+            enhance_fits_2x: enhance.fits_2x,
+            enhance_fits_4x: enhance.fits_4x,
             enhance_size_note: enhance.size_note.into(),
             enhance_strength: self.enhance_strength,
             enhance_previewing: self
@@ -1319,9 +1231,7 @@ impl Studio {
             enhance_preview,
             enhance_before,
             enhance_after,
-            enhance_estimate_total: estimate_total.into(),
-            enhance_estimate_frames: estimate_frames.into(),
-            enhance_estimate_per_frame: estimate_per_frame.into(),
+            enhance_estimate: enhance_estimate.into(),
         }
     }
 
@@ -1334,33 +1244,39 @@ impl Studio {
             return readout;
         };
         let (width, height) = (media.width.unwrap_or(0), media.height.unwrap_or(0));
-        let scale = self.enhance_scale_of(&media);
-        // The row shows what will happen: an ask this file cannot take as
-        // the scale it is held to.
-        readout.scale = scale;
-        readout.auto_scale = concat_vision::enhance::auto_scale(width, height);
-        readout.max_scale = concat_vision::enhance::max_scale(width, height);
-        if width > 0 && height > 0 {
-            let (ow, oh) = concat_vision::enhance::size_at(width, height, scale);
-            readout.source = format!("{width} × {height}");
-            readout.output = format!("{ow} × {oh}");
-        }
-        readout.size_note = if readout.max_scale <= 1.0 {
-            t("studio.enhanceAt2k")
+        let limit = concat_vision::enhance::LONGEST_SIDE;
+        let factor = self.enhance_factor(&media);
+        readout.auto = concat_vision::enhance::factor_for(width, height);
+        readout.fits_2x = concat_vision::enhance::fits(width, height, 2);
+        readout.fits_4x = concat_vision::enhance::fits(width, height, 4);
+        // The row shows what will happen: Auto as Auto, and an ask this
+        // file cannot take as the size it falls to.
+        readout.size = match (self.enhance_size, factor) {
+            (0, _) => 0,
+            (_, 1) => 1,
+            (_, 2) => 2,
+            _ => 3,
+        };
+        readout.size_note = if !readout.fits_2x {
+            tf("studio.enhanceOnlyRestore", &[&width.max(height), &limit])
+        } else if !readout.fits_4x {
+            tf(
+                "studio.enhanceNoFourTimes",
+                &[&(width * 4), &(height * 4), &limit],
+            )
         } else {
             String::new()
         };
         readout.preview = self
-            .enhance_preview_for(clip, &media, scale)
+            .enhance_preview_for(clip, &media, factor)
             .map(|preview| {
-                // The model's work on what a run covers - the span the clip
-                // shows and a second either side, as `enhance_clip` cuts it -
-                // at the warm tile time the preview measured.
+                // The model's work on the whole file - every frame of it,
+                // not only the span the clip shows - at the warm tile time
+                // the preview measured.
                 let frames = if clip.kind == model::ClipKind::Image {
                     1.0
                 } else {
-                    let span = clip.duration * clip.speed + 2.0 * super::ENHANCE_MARGIN;
-                    span.min(media.duration.unwrap_or(f64::MAX)) * media.frame_rate.unwrap_or(30.0)
+                    media.duration.unwrap_or(0.0) * media.frame_rate.unwrap_or(30.0)
                 };
                 let per_frame = preview.tile_seconds * preview.tiles_per_frame as f64;
                 let total = concat_host::enhance::estimate_seconds(
@@ -1368,15 +1284,19 @@ impl Studio {
                     preview.tiles_per_frame,
                     frames,
                 );
-                // The time, and for a video what it is made of: the frames
-                // and each one's time. A still is one frame, said once.
                 let estimate = if clip.kind == model::ClipKind::Image {
-                    (crate::format::span(total), String::new(), String::new())
+                    tf(
+                        "studio.enhanceEstimateStill",
+                        &[&crate::format::span(total)],
+                    )
                 } else {
-                    (
-                        crate::format::span(total),
-                        format!("{:.0}", frames.max(1.0)),
-                        format!("{per_frame:.1} s"),
+                    tf(
+                        "studio.enhanceEstimate",
+                        &[
+                            &crate::format::span(total),
+                            &format!("{:.0}", frames.max(1.0)),
+                            &format!("{per_frame:.1}"),
+                        ],
                     )
                 };
                 (preview.before.clone(), preview.after.clone(), estimate)
@@ -1634,10 +1554,20 @@ impl Studio {
 
         app.set_on_start(self.on_start);
         app.set_project_name(self.project_name.as_str().into());
-        self.publish_status(app);
-        set_changed(app.get_start(), self.start.data(), same_start, |data| {
-            app.set_start(data)
+        app.set_project_status(
+            if self.dirty {
+                "unsaved changes"
+            } else {
+                "saved"
+            }
+            .into(),
+        );
+        app.set_toast(ToastData {
+            token: self.toast.token,
+            message: self.toast.message.as_str().into(),
+            failed: self.toast.failed,
         });
+        app.set_start(self.start.data());
         app.set_recents_total(self.recents.len() as i32);
         sync(
             &models.recents,
@@ -1679,7 +1609,28 @@ impl Studio {
         // The Text page's presets: the look each card draws its name in.
         // All of them for the phone's one shelf; on the desktop, Styles
         // has the Latin ones and Languages, under it, the rest.
-        let cards: Vec<TextPresetData> = self.text_presets.iter().map(preset_card).collect();
+        let cards: Vec<TextPresetData> = self
+            .text_presets
+            .iter()
+            .map(|preset| {
+                let plate = colour_of(&preset.style.background);
+                TextPresetData {
+                    id: preset.id.as_str().into(),
+                    name: preset.name.as_str().into(),
+                    language: preset.language.as_str().into(),
+                    sample: preset.sample.as_str().into(),
+                    family: preset.style.font_family.trim_matches('"').into(),
+                    weight: preset.style.font_weight.round() as i32,
+                    italic: preset.style.italic,
+                    fill: colour_of(&preset.style.color),
+                    plate,
+                    plated: plate.alpha() > 0,
+                    stroke: colour_of(&preset.style.stroke_color),
+                    stroke_width: preset.style.stroke_width as f32,
+                    align: align_of(preset.style.align),
+                }
+            })
+            .collect();
         let latin = |card: &TextPresetData| card.language.eq_ignore_ascii_case("latin");
         sync(
             &models.style_presets,
@@ -1721,7 +1672,6 @@ impl Studio {
         editor.set_media_selected_count(self.media.selected.len() as i32);
         editor.set_media_filter(self.media.filter);
         editor.set_media_jump_token(self.media_jump);
-        editor.set_captions_jump_token(self.captions_jump);
         editor.set_importing(false);
 
         let (width, height) = self.output_size();
@@ -1761,28 +1711,13 @@ impl Studio {
         sync(&models.menu, rows);
         editor.set_menu_token(self.menu_token);
 
-        set_changed(
-            app.get_export(),
-            self.export.data(self),
-            same_export,
-            |data| app.set_export(data),
-        );
-        set_changed(
-            app.get_settings(),
-            self.settings.data(self),
-            same_settings,
-            |data| app.set_settings(data),
-        );
+        app.set_export(self.export.data(self));
+        app.set_settings(self.settings.data(self));
         sync(&models.transcribers, self.settings.transcriber_rows());
         sync(&models.voices, self.settings.voice_rows());
         sync(&models.versions, self.settings.version_rows());
         sync(&models.version_details, self.settings.version_details());
-        set_changed(
-            app.get_relink(),
-            self.relink.data(self),
-            same_relink,
-            |data| app.set_relink(data),
-        );
+        app.set_relink(self.relink.data());
         app.set_confirm(self.confirm_data());
 
         // The speech sheets, and the lists they choose from.
@@ -1795,39 +1730,7 @@ impl Studio {
                 .collect(),
         );
         sync(&models.caption_languages, self.captions.language_rows(self));
-        let captions = self.captions.data(self);
-        // The captions' style picker: the presets its search lets through,
-        // by name or by the writing they are for, and the one picked.
-        let query = self.captions.style_query.trim().to_lowercase();
-        sync(
-            &models.caption_styles,
-            self.text_presets
-                .iter()
-                .filter(|preset| {
-                    query.is_empty()
-                        || preset.name.to_lowercase().contains(&query)
-                        || preset.language.to_lowercase().contains(&query)
-                })
-                .map(preset_card)
-                .collect(),
-        );
-        let picked = crate::panes::captions::caption_style_id(self);
-        if let Some(preset) = self.text_presets.iter().find(|preset| preset.id == picked) {
-            let styles = app.global::<crate::ui::CaptionStyles>();
-            if styles.get_current().id != preset.id.as_str() {
-                styles.set_current(preset_card(preset));
-            }
-        }
-        let editor = app.global::<Editor>();
-        set_changed(
-            editor.get_captions_sheet(),
-            captions.clone(),
-            same_captions,
-            |data| editor.set_captions_sheet(data),
-        );
-        set_changed(app.get_captions(), captions, same_captions, |data| {
-            app.set_captions(data)
-        });
+        app.set_captions(self.captions.data(self));
         let voices = installed(&self.settings.voices);
         sync(
             &models.speech_models,
@@ -1880,7 +1783,7 @@ impl Studio {
         sync(&models.voiceover_devices, self.voiceover.device_rows());
         app.set_voiceover(self.voiceover.data(self));
         editor.set_recording(self.voiceover.recording());
-        editor.set_captions_open(self.captions.open || self.captions.shown);
+        editor.set_captions_open(self.captions.open);
         editor.set_speech_open(self.speech.open);
         editor.set_voiceover_open(self.voiceover.is_open());
 
@@ -1994,7 +1897,7 @@ impl Studio {
                 &keymap::label(&self.prefs, "split"),
                 straddled && !locked,
             ),
-            // Delete Left and Right, here as on the keys; on a
+            // CapCut's Delete Left and Right, here as on the keys; on a
             // phone, whose More is this menu, the only way to them.
             action(
                 "delete-left",
@@ -2117,26 +2020,6 @@ impl Studio {
                 Glyph::TextMark,
                 "",
                 self.clip_has_sound(clip),
-            ));
-            rows.push(rule());
-            // Voice isolation, both ways, one click each: ticked when it is
-            // what the clip plays, and chosen again to play it as recorded
-            // (#120).
-            let voiced = self.clip_has_sound(clip) && !locked;
-            let mix = clip.voice;
-            rows.push(check(
-                "voice-keep",
-                &t("voice.keepOnly"),
-                "",
-                mix.is_some_and(|mix| mix.voice > 0.0 && mix.background == 0.0),
-                voiced,
-            ));
-            rows.push(check(
-                "voice-remove",
-                &t("voice.remove"),
-                "",
-                mix.is_some_and(|mix| mix.voice == 0.0),
-                voiced,
             ));
             rows.push(rule());
         }
@@ -2703,26 +2586,5 @@ impl Studio {
         let timeline_id = self.project().active_timeline_id.clone();
         self.apply(Command::SetTimelineVideo { timeline_id, video });
         self.request_preview();
-    }
-}
-
-/// A text preset as its card draws it: enough of the look to set its
-/// sample in. The Text page's shelves and the captions' style picker.
-pub(crate) fn preset_card(preset: &TextPreset) -> TextPresetData {
-    let plate = colour_of(&preset.style.background);
-    TextPresetData {
-        id: preset.id.as_str().into(),
-        name: preset.name.as_str().into(),
-        language: preset.language.as_str().into(),
-        sample: preset.sample.as_str().into(),
-        family: preset.style.font_family.trim_matches('"').into(),
-        weight: preset.style.font_weight.round() as i32,
-        italic: preset.style.italic,
-        fill: colour_of(&preset.style.color),
-        plate,
-        plated: plate.alpha() > 0,
-        stroke: colour_of(&preset.style.stroke_color),
-        stroke_width: preset.style.stroke_width as f32,
-        align: align_of(preset.style.align),
     }
 }

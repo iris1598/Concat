@@ -65,7 +65,6 @@ mod speech;
 mod stage;
 mod text;
 mod vision;
-mod voice;
 use slint::{Model, ModelRc, SharedString, VecModel};
 
 use crate::dock::{
@@ -147,7 +146,7 @@ struct EnhancePreview {
     /// a preview of other settings or another file is not this one.
     clip_id: String,
     media_id: String,
-    scale: f32,
+    factor: u32,
     /// The plain enlargement and the model's full-strength answer, kept so
     /// Strength re-blends them at once rather than running the model again.
     plain: concat_core::Frame,
@@ -164,22 +163,17 @@ struct EnhancePreview {
 /// The Enhance section's rows for one clip; see `Studio::enhance_readout`.
 #[derive(Default)]
 struct EnhanceReadout {
-    /// The scale a run would make, once to four times: Auto's, or the ask
-    /// held to what this file may take.
-    scale: f32,
-    /// What Auto comes to for this file, and the most it may be enlarged:
-    /// as far as 2K, never past the model's four times.
-    auto_scale: f32,
-    max_scale: f32,
-    /// The file's size and the copy's, "1280 × 720" and "2560 × 1440".
-    source: String,
-    output: String,
-    /// Why the scale cannot move, or empty.
+    /// The Size row's segment: 0 Auto, 1 once, 2 twice, 3 four times.
+    size: i32,
+    /// What Auto comes to for this file.
+    auto: u32,
+    fits_2x: bool,
+    fits_4x: bool,
+    /// Why a size is greyed, or empty.
     size_note: String,
-    /// Before, after and the estimate for a whole run - its time, its
-    /// frames and each frame's time, the last two empty for a still - when
-    /// a preview of these settings is on hand.
-    preview: Option<(slint::Image, slint::Image, (String, String, String))>,
+    /// Before, after and the estimate for a whole run, when a preview of
+    /// these settings is on hand.
+    preview: Option<(slint::Image, slint::Image, String)>,
 }
 
 impl EnhancePreview {
@@ -776,8 +770,6 @@ pub struct Models {
     /// The Speed tab's curve: its points and the presets' names, kept like
     /// the colour curves' so a point being dragged is not dropped.
     pub speed_points: Rc<VecModel<CurvePointData>>,
-    /// Which of them are chosen, one flag a point.
-    pub speed_chosen: Rc<VecModel<bool>>,
     pub speed_presets: Rc<VecModel<SharedString>>,
     /// The keyframe cluster's rows and the libraries' views: synced like
     /// the rest, since a model handed over fresh is unequal to the last by
@@ -829,8 +821,6 @@ pub struct Models {
     pub font_families: Rc<VecModel<SharedString>>,
     /// Those of them the font picker's search lets through.
     pub font_matches: Rc<VecModel<SharedString>>,
-    /// The text presets the captions' style search lets through.
-    pub caption_styles: Rc<VecModel<TextPresetData>>,
 }
 
 impl Models {
@@ -870,7 +860,6 @@ impl Models {
             link_curves: RefCell::new(HashMap::new()),
             curve_points: RefCell::new(HashMap::new()),
             speed_points: Rc::new(VecModel::default()),
-            speed_chosen: Rc::new(VecModel::default()),
             speed_presets: Rc::new(VecModel::default()),
             key_rows: Rc::new(VecModel::default()),
             key_editor_rows: Rc::new(VecModel::default()),
@@ -906,7 +895,6 @@ impl Models {
             language_presets: Rc::new(VecModel::default()),
             font_families: Rc::new(VecModel::default()),
             font_matches: Rc::new(VecModel::default()),
-            caption_styles: Rc::new(VecModel::default()),
         }
     }
 }
@@ -914,25 +902,11 @@ impl Models {
 /// Republish a list into a live model without resetting it: rows that did
 /// not change are not written, and the length changes a row at a time.
 pub fn sync<T: Clone + PartialEq + 'static>(model: &VecModel<T>, next: Vec<T>) {
-    sync_with(model, next, |held, next| held == next);
-}
-
-/// [`sync`] with the rows compared by `same`: for a row that holds a model
-/// of its own, whose `==` is the model's identity. A row rebuilt with a
-/// fresh model was never equal to the one shown, so every publish wrote it
-/// again - and an open dropdown whose options were swapped under it closed,
-/// and a field being typed in was handed back its old value: the autosave
-/// a second and a half after an edit is a publish, which is how #622 met it.
-pub fn sync_with<T: Clone + 'static>(
-    model: &VecModel<T>,
-    next: Vec<T>,
-    same: impl Fn(&T, &T) -> bool,
-) {
     let mut next = next;
     let shared = model.row_count().min(next.len());
     let tail = next.split_off(shared);
     for (row, value) in next.into_iter().enumerate() {
-        if !model.row_data(row).is_some_and(|held| same(&held, &value)) {
+        if model.row_data(row).as_ref() != Some(&value) {
             model.set_row_data(row, value);
         }
     }
@@ -941,60 +915,6 @@ pub fn sync_with<T: Clone + 'static>(
     }
     for value in tail {
         model.push(value);
-    }
-}
-
-/// Whether two models hold the same rows, in the same order.
-pub fn same_rows<T: PartialEq + 'static>(a: &ModelRc<T>, b: &ModelRc<T>) -> bool {
-    a.row_count() == b.row_count()
-        && (0..a.row_count()).all(|row| a.row_data(row) == b.row_data(row))
-}
-
-/// Two rows the same in everything, their models compared by their rows:
-/// `with_models` copies `b`'s models into a clone of `a`, so every other
-/// field - and any field added later - is held to `==` as it is.
-fn same_but_models<T: Clone + PartialEq>(
-    a: &T,
-    b: &T,
-    models_same: bool,
-    with_models: impl FnOnce(&mut T, &T),
-) -> bool {
-    models_same && {
-        let mut a = a.clone();
-        with_models(&mut a, b);
-        a == *b
-    }
-}
-
-/// `fn $name(a, b) -> bool` for a struct whose `$field`s are models: equal
-/// when those hold the same rows and everything else is `==`.
-macro_rules! same_with_models {
-    ($($name:ident: $ty:ty => $($field:ident),+;)+) => {$(
-        pub fn $name(a: &$ty, b: &$ty) -> bool {
-            same_but_models(a, b, true $(&& same_rows(&a.$field, &b.$field))+, |a, b| {
-                $(a.$field = b.$field.clone();)+
-            })
-        }
-    )+};
-}
-
-same_with_models! {
-    same_chain_choice: crate::ui::ChainChoiceData => options, values;
-    same_transition_choice: crate::ui::TransitionChoiceData => options, values;
-    same_key_row: crate::ui::KeyRowData => keys;
-    same_export: crate::ui::ExportData => resolutions, rates, rate_details;
-    same_settings: crate::ui::SettingsData => shortcuts;
-    same_relink: crate::ui::RelinkData => items;
-    same_start: crate::ui::StartData => rate_options;
-    same_captions: crate::ui::CaptionsSheetData => sources;
-}
-
-/// Writes `next` through `set` unless it is `same` as what `held` shows: a
-/// struct carrying a model is rebuilt with a fresh one on every publish,
-/// and written regardless it reset the dialog reading it.
-pub fn set_changed<T>(held: T, next: T, same: fn(&T, &T) -> bool, set: impl FnOnce(T)) {
-    if !same(&held, &next) {
-        set(next);
     }
 }
 
@@ -1127,9 +1047,6 @@ pub struct Studio {
     /// Bumped when the library should show its Media page: a file the
     /// editor just made and put in the bin. See `Editor.media-jump-token`.
     pub media_jump: i32,
-    /// Bumped to turn the library to Text & Captions > Captions; see
-    /// `Editor.captions-jump-token`.
-    pub captions_jump: i32,
     /// A look being shown before it is laid down: the filter's id. It is
     /// drawn into the frames the monitor asks for as a layer over the whole
     /// picture, and nowhere else - the timeline does not have it until the
@@ -1172,9 +1089,6 @@ pub struct Studio {
     /// while that clip is still the one selected.
     words: Option<(String, usize, usize)>,
     commit_timer: slint::Timer,
-    /// Saves the layout once the panels have stopped moving; see
-    /// `remember_layout_soon`.
-    layout_timer: slint::Timer,
     /// What the catalogue shelves were last built from; while nothing in
     /// it changes the shelves are not rebuilt.
     shelf_stamp: std::cell::RefCell<Option<ShelfStamp>>,
@@ -1272,30 +1186,15 @@ pub struct Studio {
     /// Media whose stabilization was turned on anew, so an analysis the
     /// app died in last time is tried again rather than skipped.
     stabilize_retry: HashSet<String>,
-    /// Voice isolation splitting a file, by the parts' folder: whether its
-    /// model is still downloading, and how far it has got. One at a time,
-    /// like the analyses.
-    voice_jobs: HashMap<std::path::PathBuf, (bool, f32)>,
-    /// The running split's stop.
-    voice_cancel: Option<Arc<std::sync::atomic::AtomicBool>>,
-    /// Files whose split failed this session: not tried again by itself,
-    /// only when a clip is asked anew.
-    voice_failed: HashSet<std::path::PathBuf>,
-    /// The Speed graph's chosen points, by index, and the clip they are
-    /// on: another clip selected chooses none.
-    speed_chosen: (String, Vec<usize>),
-    /// The curve as it was when a drag of the chosen points began: each
-    /// move is measured from it, so a point held at a limit does not drift.
-    speed_grabbed: Option<Vec<model::SpeedPoint>>,
     /// Enhance at work, by clip id: whether the model is still
     /// downloading, and how far along. One at a time, like every long job.
     enhance_jobs: HashMap<String, (bool, f32)>,
-    /// The Enhance section's Scale, in times larger, 0 for Auto, and its
+    /// The Enhance section's Size, in times larger, 0 for Auto, and its
     /// Strength, 0 to 1. The window's rather than a clip's: they are what
     /// the next run is made with, carried from clip to clip the way a
     /// tool's settings are, and a copy already made is named by its own;
     /// see `concat_host::enhance::target_for`.
-    enhance_scale: f32,
+    enhance_size: u32,
     enhance_strength: f32,
     /// The last preview of a frame through the model, while the clip it
     /// was made for is the one in the inspector.
@@ -1382,33 +1281,12 @@ fn kind_of(clip: &Clip) -> ClipKind {
         model::ClipKind::Audio => ClipKind::Audio,
         model::ClipKind::Image => ClipKind::Image,
         model::ClipKind::Text => ClipKind::Text,
-        model::ClipKind::Layer => {
-            layer_kind(clip.video_effects.first().map(|link| link.id.as_str()))
-        }
+        model::ClipKind::Layer => ClipKind::Filter,
         model::ClipKind::SoundLayer => ClipKind::SoundLayer,
         model::ClipKind::Shape => ClipKind::Shape,
-        // Drawn as a layer is - a span over the lanes beneath it, named for
-        // its package, with no picture of its own - in a colour of its own.
-        model::ClipKind::Transition => ClipKind::Transition,
-    }
-}
-
-/// What a picture layer is to the eye, by the package its chain starts
-/// with: the colour panel's own makes an adjustment layer, an effect
-/// package an effect layer, and anything else - a look, a LUT, a chain
-/// emptied - a filter layer. The lanes, the drop ghost and the drag chip
-/// each paint the three in their own colour.
-fn layer_kind(package: Option<&str>) -> ClipKind {
-    match package {
-        Some(ADJUST_ID) => ClipKind::Adjustment,
-        Some(id)
-            if Catalogue::builtin()
-                .get(id)
-                .is_some_and(|package| package.kind() == PackageKind::Effect) =>
-        {
-            ClipKind::Effect
-        }
-        _ => ClipKind::Filter,
+        // Drawn as a layer is: a span over the lanes beneath it, named for
+        // its package, with no picture of its own.
+        model::ClipKind::Transition => ClipKind::Filter,
     }
 }
 
@@ -1905,14 +1783,6 @@ fn clip_commands(id: &str, before: &Clip, after: &Clip, magnetic: bool) -> Vec<C
             stabilize: after.stabilize,
         });
     }
-    // Without this the inspector's Voice isolation wrote the echo and the
-    // commit dropped it: the way chosen sprang back to Everything.
-    if after.voice != before.voice {
-        commands.push(Command::SetClipVoice {
-            clip_id: id.to_owned(),
-            voice: after.voice,
-        });
-    }
     if after.speed_curve != before.speed_curve {
         // A curve, changed or new, is one command; a curve taken away is
         // the constant rate the echo left, which SetClipSpeed sets and
@@ -1976,11 +1846,6 @@ fn clip_commands(id: &str, before: &Clip, after: &Clip, magnetic: bool) -> Vec<C
     }
     if after.mask != before.mask {
         patch.mask = Some(after.mask);
-    }
-    if after.shape != before.shape
-        && let Some(shape) = after.shape.clone()
-    {
-        patch.shape = Some(shape);
     }
     commands.extend(key_commands(id, before, after));
     if after.text != before.text {
@@ -2525,9 +2390,6 @@ pub enum Confirm {
     /// this a disk unplugged, full or read-only made a window that would
     /// never close.
     QuitWithoutSaving { error: String },
-    /// Restarting for a setting that is read only at launch: the project
-    /// is saved, and opens again in the new window.
-    Restart,
 }
 
 /// One clip on the clipboard: the clip as it was when copied, the row of
@@ -2685,17 +2547,6 @@ impl Studio {
     /// read off disk.
     pub fn new(host: Host) -> Self {
         let prefs = Preferences::load(&host.dirs);
-        // The panels where the last session left them, while Settings says
-        // to; a saved dock this build cannot read is the default instead.
-        let saved = prefs.layout.as_ref().filter(|_| prefs.remembers_layout());
-        let dock = saved
-            .and_then(|layout| layout.wide.as_ref())
-            .and_then(Dock::from_saved)
-            .unwrap_or_else(default_dock);
-        let dock_aside = saved
-            .and_then(|layout| layout.compact.as_ref())
-            .and_then(Dock::from_saved)
-            .unwrap_or_else(crate::dock::compact_dock);
         let mut start = crate::panes::start::StartPane::default();
         if let Some(location) = prefs.project_location() {
             start.location = location.to_owned();
@@ -2766,8 +2617,8 @@ impl Studio {
             posters_pending: HashSet::new(),
             lengths: HashMap::new(),
             project_name: t("common.untitledProject"),
-            dock,
-            dock_aside,
+            dock: default_dock(),
+            dock_aside: crate::dock::compact_dock(),
             compact: false,
             workspace: (0.0, 0.0),
             divider_press: None,
@@ -2775,7 +2626,6 @@ impl Studio {
             stage_guides: Vec::new(),
             inspector_jump: (0, "", ""),
             media_jump: 0,
-            captions_jump: 0,
             audition: None,
             revision: 0,
             flat: None,
@@ -2783,7 +2633,6 @@ impl Studio {
             commit_targets: Vec::new(),
             words: None,
             commit_timer: slint::Timer::default(),
-            layout_timer: slint::Timer::default(),
             shelf_stamp: std::cell::RefCell::new(None),
             look_art: std::cell::RefCell::new(HashMap::new()),
             card_paths: HashMap::new(),
@@ -2816,14 +2665,9 @@ impl Studio {
             picking: None,
             cutout_jobs: HashMap::new(),
             stabilize_jobs: HashMap::new(),
-            voice_jobs: HashMap::new(),
-            voice_cancel: None,
-            voice_failed: HashSet::new(),
-            speed_chosen: (String::new(), Vec::new()),
-            speed_grabbed: None,
             stabilize_retry: HashSet::new(),
             enhance_jobs: HashMap::new(),
-            enhance_scale: 0.0,
+            enhance_size: 0,
             enhance_strength: concat_host::enhance::DEFAULT_STRENGTH,
             enhance_preview: None,
             enhance_previewing: None,
@@ -2924,77 +2768,6 @@ mod tests {
         colour_about, custom_frame, custom_rate, fps_of, grading_rows, has_hue, home_folder,
         key_commands, packed, place_in, shown, wheel_partners, write_keyable,
     };
-
-    /// The inspector writes its Voice isolation into the echo, and the
-    /// commit is the difference between the echo and the document: a
-    /// difference with no command dropped the choice, and the inspector's
-    /// Voice only and No voice sprang back to Everything.
-    #[test]
-    fn a_voice_set_in_the_inspector_is_committed() {
-        use concat_project::model::{Clip, ClipKind as Kind, VoiceMix};
-        let before = Clip::blank("c1", "t1", Kind::Audio, "m1", 0.0, 4.0);
-        for mix in [Some(VoiceMix::KEEP_VOICE), Some(VoiceMix::REMOVE_VOICE)] {
-            let mut after = before.clone();
-            after.voice = mix;
-            let commands = super::clip_commands("c1", &before, &after, false);
-            assert!(
-                commands.iter().any(|command| matches!(
-                    command,
-                    Command::SetClipVoice { voice, .. } if *voice == mix
-                )),
-                "no command carries {mix:?}: {commands:?}"
-            );
-        }
-        let mut on = before.clone();
-        on.voice = Some(VoiceMix::KEEP_VOICE);
-        assert!(
-            super::clip_commands("c1", &on, &before, false)
-                .iter()
-                .any(|command| matches!(command, Command::SetClipVoice { voice: None, .. }))
-        );
-    }
-
-    /// A row rebuilt with fresh models of the same rows is the same row, so
-    /// a publish leaves it - and the dropdown reading it - alone (#622);
-    /// a changed option, or any other field, is a change.
-    #[test]
-    fn rows_holding_models_are_compared_by_what_the_models_hold() {
-        use slint::{Model, ModelRc, SharedString, VecModel};
-        let choice = |options: &[&str], current: i32| crate::ui::ChainChoiceData {
-            options: ModelRc::new(VecModel::from(
-                options
-                    .iter()
-                    .map(|o| SharedString::from(*o))
-                    .collect::<Vec<_>>(),
-            )),
-            values: ModelRc::new(VecModel::from(vec![0.0f32, 1.0])),
-            current,
-            ..Default::default()
-        };
-        let shown = choice(&["Soft", "Hard"], 0);
-        assert!(super::same_chain_choice(
-            &shown,
-            &choice(&["Soft", "Hard"], 0)
-        ));
-        assert!(!super::same_chain_choice(
-            &shown,
-            &choice(&["Soft", "Harder"], 0)
-        ));
-        assert!(!super::same_chain_choice(
-            &shown,
-            &choice(&["Soft", "Hard"], 1)
-        ));
-
-        let model = VecModel::from(vec![shown.clone()]);
-        let held = model.row_data(0).expect("a row").options;
-        super::sync_with(
-            &model,
-            vec![choice(&["Soft", "Hard"], 0)],
-            super::same_chain_choice,
-        );
-        let after = model.row_data(0).expect("a row").options;
-        assert!(held == after, "an unchanged row kept its model");
-    }
 
     /// Up and Down walk the cuts on every lane in order, a playhead a
     /// hair off a cut by rounding counts as on it, and past the last cut

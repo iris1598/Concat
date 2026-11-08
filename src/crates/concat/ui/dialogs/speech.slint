@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Jareer Abdullah and Concat contributors
 
-import { ResizeBox } from "../primitives/resize-box.slint";
 import { I18n } from "../i18n.slint";
 import { Theme } from "../theme/theme.slint";
 import { Glyph, Icon } from "../icons.slint";
@@ -320,16 +319,19 @@ export component SpeechDialog inherits Modal {
             first: true;
             title: I18n.t("common.script");
 
-            // Scrolls past its bottom and is drawn taller by its corner.
-            script-box := ResizeBox {
-                content-height: script.preferred-height;
-                focused: script.has-focus;
+            Rectangle {
+                height: 104px;
+                border-radius: Theme.r;
+                background: Theme.well;
+                border-width: 1px;
+                border-color: script.has-focus ? Theme.accent : Theme.line;
+                clip: true;
 
                 script := TextInput {
-                    y: script-box.pad-y;
-                    width: parent.width;
-                    height: Math.max(self.preferred-height, script-box.view-height);
-                    cursor-position-changed(at) => { script-box.reveal(at.y, self.font-size * 1.4); }
+                    x: 10px;
+                    y: 8px;
+                    width: parent.width - 20px;
+                    height: parent.height - 16px;
                     text <=> root.draft;
                     color: Theme.fg;
                     font-size: Theme.fs-lg;
@@ -355,8 +357,8 @@ export component SpeechDialog inherits Modal {
                 }
 
                 if root.draft == "" && !script.has-focus: Text {
-                    x: 0;
-                    y: script-box.pad-y;
+                    x: 10px;
+                    y: 8px;
                     text: I18n.t("speech.typeNarrationReadAloud");
                     color: Theme.fg-dim;
                     font-size: Theme.fs-lg;

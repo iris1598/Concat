@@ -45,7 +45,8 @@ whisper.cpp's Rust build. The published build script builds whisper and
 ggml as static libraries only, so ggml's CPU kernels are compiled for one
 instruction set: AVX2 crashed Sandy and Ivy Bridge machines at launch
 (jub0t/concat#193), and AVX alone made transcription some eight times
-slower everywhere else (#388). One change, marked `Concat:` in `build.rs`:
+slower everywhere else (#388). Two changes, both marked `Concat:` in
+`build.rs`:
 
 - `GGML_BACKEND_DL=ON` in the environment builds whisper, ggml and
   ggml-base as shared libraries and every backend as a module ggml loads
@@ -55,6 +56,12 @@ slower everywhere else (#388). One change, marked `Concat:` in `build.rs`:
   generation, and ggml loads the best one the CPU can run; concat-speech's
   `cpu_backend` tells it where to look. build-app.yml turns both on for the
   x86_64 Windows and Linux bundles. Unset, the build is the published one.
+- The `/utf-8` MSVC switch and the `advapi32` link are gated on the
+  *target* being Windows, not the host: the published script asks
+  `cfg!(target_os = "windows")`, which reads the machine driving the
+  build. Crossing to a phone from a Windows host then hands clang++
+  `/utf-8` as a flag, which it takes for a file name, and links a library
+  the phone has none of.
 
 And the copy is smaller than the published crate: ggml's GPU backends that
 no build of Concat compiles (CANN, CUDA, Hexagon, HIP, MUSA, OpenCL, RPC,
